@@ -1,0 +1,73 @@
+@base_url = https://openrouter.ai/api/v1
+# This directly reads OPENROUTER_API_KEY from your .env file
+# No need to select any environment in VS Code anymore!
+
+### Test Tencent Hy3
+POST {{base_url}}/chat/completions
+Authorization: Bearer {{$dotenv OPENROUTER_API_KEY}}
+Content-Type: application/json
+
+{
+  "model": "tencent/hy3-preview:free",
+  "messages": [{"role": "user", "content": "Briefly introduce yourself."}]
+}
+
+### Test NVIDIA Nemotron 3 Super
+POST {{base_url}}/chat/completions
+Authorization: Bearer {{$dotenv OPENROUTER_API_KEY}}
+Content-Type: application/json
+
+{
+  "model": "nvidia/nemotron-3-super-120b-a12b:free",
+  "messages": [{"role": "user", "content": "Briefly introduce yourself."}]
+}
+
+### Test inclusionAI Ling-2.6-1T
+POST {{base_url}}/chat/completions
+Authorization: Bearer {{$dotenv OPENROUTER_API_KEY}}
+Content-Type: application/json
+
+{
+  "model": "inclusionai/ling-2.6-1t:free",
+  "messages": [{"role": "user", "content": "Briefly introduce yourself."}]
+}
+
+### Test OpenAI gpt-oss-120b
+POST {{base_url}}/chat/completions
+Authorization: Bearer {{$dotenv OPENROUTER_API_KEY}}
+Content-Type: application/json
+
+{
+  "model": "openai/gpt-oss-120b:free",
+  "messages": [{"role": "user", "content": "Briefly introduce yourself."}]
+}
+
+### Test MiniMax M2.5
+POST {{base_url}}/chat/completions
+Authorization: Bearer {{$dotenv OPENROUTER_API_KEY}}
+Content-Type: application/json
+
+{
+  "model": "minimax/minimax-m2.5:free",
+  "messages": [{"role": "user", "content": "Briefly introduce yourself."}]
+}
+
+### Test Z.ai GLM 4.5 Air
+POST {{base_url}}/chat/completions
+Authorization: Bearer {{$dotenv OPENROUTER_API_KEY}}
+Content-Type: application/json
+
+{
+  "model": "z-ai/glm-4.5-air:free",
+  "messages": [{"role": "user", "content": "Briefly introduce yourself."}]
+}
+
+### Test Google Gemma 4 31B rate limited; we have to check whether the api is available
+POST {{base_url}}/chat/completions
+Authorization: Bearer {{$dotenv OPENROUTER_API_KEY}}
+Content-Type: application/json
+
+{
+  "model": "google/gemma-4-31b-it:free",
+  "messages": [{"role": "user", "content": "Briefly introduce yourself."}]
+}
