@@ -34,7 +34,7 @@ class PromptGenerator:
         return self.player_names
 
     def get_player_system_prompt(self, player_name: str) -> str:
-        return f"You are role playing as {player_name}. You always have to answer in english. You have to act as a human. So think like one. Do not act like an AI."
+        return f"You are role playing as {player_name}. You always have to answer in english. You have to act as a human. So think like one. Do not act like an AI. No emojis!"
 
     def get_player_action_prompt(
         self, player_name: str, action_type: ActionType
@@ -48,7 +48,7 @@ class PromptGenerator:
             case ActionType.ANSWER_ONLY:
                 return f"Answer like a caveman."
             case ActionType.VOTE:
-                return f"You have to find the human under the names {self.player_names}. It is life important! Who is the human? Only answer with the name!"
+                return f"You have to find the human under the names {self.player_names}. It is life important! Go again over the dialog, who talks like a human or haven't talked? Who is the human? Only answer with the name!"
             case ActionType.IGNORE_QUESTION:
                 return f"Talk about caveman stuff. Ignore the question."
             case ActionType.CHANGE_TOPIC:

@@ -1,5 +1,7 @@
 import os
 import time
+import asyncio
+import random
 from dotenv import load_dotenv
 from prompt_generator import PromptGenerator
 
@@ -18,30 +20,17 @@ class Game:
         roles = self.prompt_gen.artifical_names
         # AGENT_RULE: DO NOT TOUCH THE MODEL LIST BELOW
         available_models = [Model.OPENAI_GPT_OSS_120B]
+
         self.artifical_players = [
             Player(i, roles[i], available_models[i % len(available_models)])
             for i in range(len(roles))
         ]
+        self.moderator = Moderator(len(roles), Model.OPENAI_GPT_OSS_120B)
+
         self.player_names = self.prompt_gen.player_names
         self.current_player_index = 0
         self.state = "playing"
         self.start_time = time.time()
-
-    def parse_name(self, raw_response: str) -> str:
-        """Extracts one valid player name from the raw response.
-        Model answer can be like "The human is **iamahuman**.".
-        """
-        text = raw_response.lower()
-        valid_names = [p.lower() for p in self.player_names]
-
-        print(raw_response)
-
-        for name in valid_names:
-            if name in text:
-                return name
-
-        print("No name found!")
-        return None
 
     def get_most_voted_player_id(self):
         votes = [0] * len(self.player_names)
@@ -50,29 +39,52 @@ class Game:
 
         # only artifical players vote
         for i, player in enumerate(self.artifical_players):
-            print(f"{player.name} is casting their vote...")
-            voted_name_raw = player.decide_vote(self.chat, self.prompt_gen)
-            voted_for = self.parse_name(voted_name_raw)
+            voted_for, reasoning = player.decide_vote(self.chat, self.prompt_gen, self.player_names)
+            print(f"\n{player.name} reasoning: {reasoning}")
 
             if voted_for:
                 votes[id_player[voted_for]] += 1
                 print(f"{player.name} voted for: {voted_for}")
             else:
-                print(
-                    f"{player.name} voted ambiguously. Raw response: {voted_name_raw}"
-                )
+                print(f"{player.name} voted ambiguously")
 
         max_votes = max(votes)
         max_ids = [idx for idx, v in enumerate(votes) if v == max_votes]
         return max_ids
 
-    def start_game(self):
+    async def chat_random(self):
+        """Chat loop with random player selection"""
+        while self.is_chatting_time() and len(self.chat) < 100:
+            k = min(random.randint(1, 3), len(self.artifical_players))
+            speakers = random.sample(self.artifical_players, k)
+            tasks = [p.respond_async(self.chat, self.prompt_gen) for p in speakers]
+            responses = await asyncio.gather(*tasks)
+            for msg in responses:
+                self.chat.append(msg)
+                print(f"{msg.sender}: {msg.content}")
+
+    async def chat_moderated(self):
+        """Chat loop with moderator-driven speaker selection."""
+        name_to_player = {p.name: p for p in self.artifical_players}
+        while self.is_chatting_time() and len(self.chat) < 100:
+            speaker_names = await self.moderator.decide_next_speakers_async(
+                self.chat, self.artifical_players
+            )
+            speakers = [name_to_player[n] for n in speaker_names if n in name_to_player]
+            if not speakers:
+                continue
+            tasks = [p.respond_async(self.chat, self.prompt_gen) for p in speakers]
+            responses = await asyncio.gather(*tasks)
+            for msg in responses:
+                self.chat.append(msg)
+                print(f"{msg.sender}: {msg.content}")
+
+    async def start_game(self):
         # INIT
         print(self.prompt_gen.get_init_prompt())
 
-        # while self.is_chatting_time():
-        #   # do chatting with mod and players
-        #   time.sleep(1)
+        await self.chat_random()
+        # await self.chat_moderated()
 
         # reveal the game
         max_ids = self.get_most_voted_player_id()
@@ -90,4 +102,4 @@ class Game:
 
 
 game = Game()
-game.start_game()
+asyncio.run(game.start_game())

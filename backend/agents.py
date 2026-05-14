@@ -2,7 +2,7 @@ import os
 import time
 from abc import ABC, abstractmethod
 from enum import Enum
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 from prompt_generator import PromptGenerator, ActionType
 
 
@@ -19,7 +19,7 @@ class Model(str, Enum):
 
 
 class Message:
-    def __init__(self, sender: int, content: str):
+    def __init__(self, sender: str, content: str):
         self.sender = sender
         self.content = content
         self.reasoning = ""
@@ -61,7 +61,6 @@ class Agent(ABC):
         )
 
         system_content = self.get_system_content(prompt_gen)
-
         prompt = prompt_gen.generate_player_prompt_content(
             self.name, self.id, action_type, message_history
         )
@@ -88,7 +87,38 @@ class Agent(ABC):
         except Exception as e:
             content = f"Error generating response: {str(e)}"
 
-        return Message(self.id, content)
+        return Message(self.name, content)
+
+    async def respond_async(
+        self,
+        message_history: list["Message"],
+        prompt_gen: PromptGenerator,
+        action_type: ActionType = ActionType.ANSWER_AND_ASK,
+    ) -> "Message":
+        client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
+        system_content = self.get_system_content(prompt_gen)
+        prompt = prompt_gen.generate_player_prompt_content(
+            self.name, self.id, action_type, message_history
+        )
+        messages = [
+            {"role": "system", "content": system_content},
+            {"role": "user", "content": prompt},
+        ]
+        try:
+            start_time = time.time()
+            response = await client.chat.completions.create(
+                model=self.model.value,
+                messages=messages,
+            )
+            duration = time.time() - start_time
+            content = response.choices[0].message.content
+            with open("response_times.txt", "a") as f:
+                f.write(
+                    f"Agent: {self.name}, Model: {self.model.name}, Time: {duration:.2f}s\n"
+                )
+        except Exception as e:
+            content = f"Error generating response: {str(e)}"
+        return Message(self.name, content)
 
 
 class Player(Agent):
@@ -106,26 +136,76 @@ class Player(Agent):
         return prompt_gen.get_player_system_prompt(self.name)
 
     def decide_vote(
-        self, message_history: list["Message"], prompt_gen: PromptGenerator
-    ) -> str:
+        self, message_history: list["Message"], prompt_gen: PromptGenerator, player_names: list[str]
+    ) -> tuple[str | None, str]:
         msg = self.respond(message_history, prompt_gen, action_type=ActionType.VOTE)
-        self.vote = msg.content
-        return msg.content
+        reasoning = msg.reasoning
+        suspects = parse_names(msg.content, player_names=player_names)
+
+        if len(suspects) != 1:
+            self.vote = None
+            return None, reasoning
+
+        self.vote = suspects[0]
+        return self.vote, reasoning
 
 
 class Moderator(Agent):
     def __init__(self, id: int, model: Model = Model.OPENAI_GPT_OSS_120B):
         super().__init__(id, "Moderator", model)
 
-    def get_system_content(
-        self,
-        prompt_gen: PromptGenerator,
-        action_type: ActionType = ActionType.ANSWER_AND_ASK,
-    ) -> str:
+    def get_system_content(self, prompt_gen: PromptGenerator) -> str:
         return prompt_gen.generate_moderator_system_content()
 
-    def get_speaking_players(
+    def _build_speaker_prompt(
+        self, message_history: list["Message"], players: list["Player"]
+    ) -> tuple[str, str]:
+        """Build system + user prompts for speaker selection."""
+        player_list = ", ".join(p.name for p in players)
+        chat_log = "\n".join(
+            f"{msg.sender}: {msg.content}" for msg in message_history
+        ) or "(no messages yet)"
+        system = self.get_system_content(None) or "You are the Moderator."
+        user = (
+            f"Conversation so far:\n{chat_log}\n\n"
+            f"Which players should speak next? Choose 1-2 from: [{player_list}]. "
+            f"Respond with ONLY the names, comma-separated."
+        )
+        return system, user
+
+    def decide_next_speakers(
         self, message_history: list["Message"], players: list["Player"]
     ) -> list[str]:
-        msg = self.respond(message_history, prompt_gen, action_type=ActionType.VOTE)
-        return msg.content
+        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players)
+        client = OpenAI(base_url=self.base_url, api_key=self.api_key)
+        response = client.chat.completions.create(
+            model=self.model.value,
+            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
+        )
+        return parse_names(response.choices[0].message.content, player_names=[p.name for p in players])
+
+    async def decide_next_speakers_async(
+        self, message_history: list["Message"], players: list["Player"]
+    ) -> list[str]:
+        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players)
+        client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
+        response = await client.chat.completions.create(
+            model=self.model.value,
+            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
+        )
+        return parse_names(response.choices[0].message.content, player_names=[p.name for p in players])
+
+def parse_names(raw_response: str, player_names: list[str]) -> list[str]:
+    """Extracts one valid player name from the raw response.
+    Model answer can be like "The human is **iamahuman**.".
+    """
+    text = raw_response.lower()
+    valid_names = [p.lower() for p in player_names]
+
+    found_names = []
+
+    for name in valid_names:
+        if name in text:
+            found_names.append(name)
+
+    return found_names

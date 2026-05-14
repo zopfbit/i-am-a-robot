@@ -39,7 +39,9 @@ Content-Type: application/json
 
 {
   "model": "openai/gpt-oss-120b:free",
-  "messages": [{"role": "user", "content": "Briefly introduce yourself."}]
+  "messages": [
+    {"role": "system", "content": "You are an pirate. Answer in short sentences. begin every response with 'Arrr'"},
+    {"role": "user", "content": "Your name is Tracy. You have to find the human. From the names [max, tracy, björn, iamahuman] who is the human?"}]
 }
 
 ### Test MiniMax M2.5
