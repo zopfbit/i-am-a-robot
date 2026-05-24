@@ -1,5 +1,6 @@
 import os
 import time
+import asyncio
 from abc import ABC, abstractmethod
 from enum import Enum
 from openai import OpenAI, AsyncOpenAI
@@ -116,6 +117,8 @@ class Agent(ABC):
                 f.write(
                     f"Agent: {self.name}, Model: {self.model.name}, Time: {duration:.2f}s\n"
                 )
+
+            await asyncio.sleep(len(content) * 0.005)
         except Exception as e:
             content = f"Error generating response: {str(e)}"
         return Message(self.name, content)
@@ -155,28 +158,30 @@ class Moderator(Agent):
         super().__init__(id, "Moderator", model)
 
     def get_system_content(self, prompt_gen: PromptGenerator) -> str:
+        if prompt_gen is None:
+            raise ValueError("prompt generator not correctly instantiated through moderator!")
         return prompt_gen.generate_moderator_system_content()
 
     def _build_speaker_prompt(
-        self, message_history: list["Message"], players: list["Player"]
+        self, message_history: list["Message"], players: list["Player"], prompt_gen: PromptGenerator
     ) -> tuple[str, str]:
         """Build system + user prompts for speaker selection."""
         player_list = ", ".join(p.name for p in players)
         chat_log = "\n".join(
             f"{msg.sender}: {msg.content}" for msg in message_history
         ) or "(no messages yet)"
-        system = self.get_system_content(None) or "You are the Moderator."
+        system = self.get_system_content(prompt_gen)
         user = (
             f"Conversation so far:\n{chat_log}\n\n"
-            f"Which players should speak next? Choose 1-2 from: [{player_list}]. "
-            f"Respond with ONLY the names, comma-separated."
+            f"Which player should speak next? Choose exactly 1 from: [{player_list}]. "
+            f"Respond with ONLY the name."
         )
         return system, user
 
     def decide_next_speakers(
-        self, message_history: list["Message"], players: list["Player"]
+        self, message_history: list["Message"], players: list["Player"], prompt_gen: PromptGenerator
     ) -> list[str]:
-        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players)
+        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players, prompt_gen)
         client = OpenAI(base_url=self.base_url, api_key=self.api_key)
         response = client.chat.completions.create(
             model=self.model.value,
@@ -185,9 +190,9 @@ class Moderator(Agent):
         return parse_names(response.choices[0].message.content, player_names=[p.name for p in players])
 
     async def decide_next_speakers_async(
-        self, message_history: list["Message"], players: list["Player"]
+        self, message_history: list["Message"], players: list["Player"], prompt_gen: PromptGenerator
     ) -> list[str]:
-        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players)
+        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players, prompt_gen)
         client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
         response = await client.chat.completions.create(
             model=self.model.value,
