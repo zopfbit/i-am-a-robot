@@ -185,6 +185,12 @@
             100% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); }
         }
 
+        @keyframes pulse-timer {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.97); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
         .msg-chat {
             align-self: flex-start;
             background-color: var(--bg-color);
@@ -336,7 +342,13 @@
     <div id="chat-screen">
         <div class="chat-header">
             <span>Room: <span id="room-name">Main</span></span>
-            <span id="player-display"></span>
+            <div style="display: flex; align-items: center; gap: 1.2rem;">
+                <span id="timer-display" style="background-color: rgba(255, 255, 255, 0.05); padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--border-color); color: #60a5fa; font-family: monospace; font-size: 1.1rem; display: none; align-items: center; gap: 0.4rem; transition: all 0.3s ease;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    <span id="timer-sec">00:00</span>
+                </span>
+                <span id="player-display"></span>
+            </div>
         </div>
         <div class="chat-messages" id="chat-messages">
             <!-- Messages go here -->
@@ -356,6 +368,7 @@
         const typingIndicator = document.getElementById('typing-indicator');
         
         let ws;
+        let timerInterval;
 
         startBtn.addEventListener('click', startGame);
 
@@ -388,6 +401,48 @@
             ws.onopen = () => {
                 addMessage('system', 'Connected to the game server. Waiting for game to start...');
                 typingIndicator.style.display = 'block';
+
+                // Start countdown timer
+                const timerEl = document.getElementById('timer-display');
+                const timerSec = document.getElementById('timer-sec');
+                timerEl.style.display = 'inline-flex';
+
+                let timeLeft = duration;
+                if (timerInterval) clearInterval(timerInterval);
+
+                const updateTimer = () => {
+                    const mins = Math.floor(timeLeft / 60);
+                    const secs = timeLeft % 60;
+                    timerSec.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+
+                    const percent = (timeLeft / duration) * 100;
+                    if (percent < 20) {
+                        timerEl.style.color = '#ef4444';
+                        timerEl.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                        timerEl.style.animation = 'pulse-timer 1s infinite';
+                    } else if (percent < 50) {
+                        timerEl.style.color = '#f59e0b';
+                        timerEl.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                        timerEl.style.animation = 'none';
+                    } else {
+                        timerEl.style.color = '#60a5fa';
+                        timerEl.style.borderColor = 'var(--border-color)';
+                        timerEl.style.animation = 'none';
+                    }
+
+                    if (timeLeft <= 0) {
+                        clearInterval(timerInterval);
+                        timerSec.textContent = 'VOTING';
+                        timerEl.style.color = '#f59e0b';
+                        timerEl.style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                        timerEl.style.animation = 'pulse-timer 1.5s infinite';
+                        return;
+                    }
+                    timeLeft--;
+                };
+
+                updateTimer();
+                timerInterval = setInterval(updateTimer, 1000);
             };
 
             ws.onmessage = (event) => {
@@ -409,15 +464,19 @@
                     }
                 }
                 
-                // If we get a "survived" or "lose" message, hide typing indicator
+                // If we get a "survived" or "lose" message, hide typing indicator and stop timer
                 if (data.content.includes("You win") || data.content.includes("You lose")) {
                     typingIndicator.style.display = 'none';
+                    if (timerInterval) clearInterval(timerInterval);
+                    document.getElementById('timer-display').style.display = 'none';
                 }
             };
 
             ws.onclose = () => {
                 addMessage('system', 'Connection to server lost. Game over.');
                 typingIndicator.style.display = 'none';
+                if (timerInterval) clearInterval(timerInterval);
+                document.getElementById('timer-display').style.display = 'none';
             };
         }
 

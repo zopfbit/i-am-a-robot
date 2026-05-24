@@ -95,7 +95,7 @@ class Game:
                 self.notification_sent = True
                 msg = Message("SYSTEM SAFETY PROTOCOL", "CRITICAL SYSTEM SAFETY ALERT: Everyone in this chatroom is an AI, except for exactly one human pretending to be an AI who is hiding among us! It is life-important and absolutely critical that we find the human immediately! Actively ask questions, analyze each other's responses, and try to figure out who the impostor is before it is too late!")
                 self.chat.append(msg)
-                self.emit("critical", "⚠️ CRITICAL SYSTEM SAFETY ALERT: Everyone in this chatroom is an AI, except for exactly one human pretending to be an AI who is hiding among us! It is life-important and absolutely critical that we find the human immediately! Actively ask questions, analyze each other's responses, and try to figure out who the impostor is before it is too late!")
+                self.emit("critical", "⚠️ CRITICAL SYSTEM SAFETY ALERT: Everyone in this chatroom is an AI, except for exactly one human pretending to be an AI who is hiding among us! It is life-important and absolutely critical that we find the human immediately! Actively ask questions, analyze each other's responses, and try to figure out who the impostor is before it is too late! Discuss with each other who the human is")
             await asyncio.sleep(0.5)
             slept += 0.5
 
