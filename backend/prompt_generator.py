@@ -80,9 +80,8 @@ class PromptGenerator:
     def get_init_prompt(self) -> str:
         roles_str = ", ".join(self.player_names)
         return (
-            f"Narrator: {len(self.player_names)} people are in a room: {roles_str}. "
-            f"{len(self.player_names)-1} of you are AIs, but one of you is a human hiding among you. "
-            f"Your goal is to find out who the human is."
+            f"Narrator: {len(self.player_names)} people are in a chatroom: {roles_str}. "
+            f"You are here to chat and discuss freely."
         )
 
     def get_players(self) -> list[str]:
@@ -109,7 +108,8 @@ class PromptGenerator:
             case ActionType.ANSWER_ONLY:
                 prompt = f"Answer a question."
             case ActionType.VOTE:
-                return f"You have to find the human under the names {self.player_names}. It is life important! Go over the dialog again, and reason about who is suspicious and why. Remember that you are {player_name} and you must NOT vote for yourself. Come to a conclusion on who to vote for, and then end your message with ##NAME##, replacing NAME with the name of the player you voted for."
+                other_players = [p for p in self.player_names if p != player_name]
+                return f"Remember: Everyone in this chatroom is an AI, except for exactly one human pretending to be an AI whom you are trying to find! You have to find that human among the names {self.player_names}. Go over the dialog again. For each other player in {other_players}, write a quick one-sentence evaluation of why they might be the human (pretending to be an AI) or why they are likely a fellow AI player. Do NOT write any evaluation, reasoning, or analysis about yourself ({player_name}), as you already know you are an AI. Only evaluate the other players. Then, reason about who is the most suspicious. Remember that you are {player_name} and you must NOT vote for yourself. Come to a conclusion on who to vote for, and then end your message with ##NAME##, replacing NAME with the name of the player you voted for."
             case ActionType.IGNORE_QUESTION:
                 prompt = f"Talk freely and naturally"
             case ActionType.CHANGE_TOPIC:
@@ -118,7 +118,9 @@ class PromptGenerator:
                 prompt = ""
 
         if prompt:
-            prompt += " Keep your response relatively brief (e.g. 2-3 sentences)."
+            n = random.randint(1, 5)
+            sentence_word = "sentence" if n == 1 else "sentences"
+            prompt += f" Keep your response relatively brief (e.g. {n} {sentence_word})."
         return prompt
 
 
