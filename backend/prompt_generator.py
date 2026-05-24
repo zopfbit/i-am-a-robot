@@ -1,3 +1,5 @@
+import os
+import random
 from enum import Enum
 
 
@@ -21,6 +23,23 @@ class PromptGenerator:
         self.artifical_names = player_roles
         self.player_names = player_roles + [player_name]
         self.prompts = {}
+        self.personalities = {}
+
+        file_path = os.path.join(os.path.dirname(__file__), "personalities.txt")
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                available_personalities = [line.strip() for line in f if line.strip()]
+        except FileNotFoundError:
+            available_personalities = [
+                "Your personality is: Grumpy, sarcastic, and always annoyed by everyone.",
+                "Your personality is: Overly enthusiastic, cheerful, and a bit naive."
+            ]
+
+        if not available_personalities:
+            available_personalities = ["Your personality is: A normal, everyday person."]
+
+        for role in self.artifical_names:
+            self.personalities[role] = random.choice(available_personalities)
 
     def get_init_prompt(self) -> str:
         roles_str = ", ".join(self.player_names)
@@ -34,7 +53,12 @@ class PromptGenerator:
         return self.player_names
 
     def get_player_system_prompt(self, player_name: str) -> str:
-        return f"You are role playing as {player_name}. You always have to answer in english. You have to act as a human. So think like one. Do not act like an AI. No emojis!"
+        prompt = f"You are role playing as {player_name}. You always have to answer in english. You have to act as a human. So think like one. Do not act like an AI. No emojis!"
+        if player_name in self.personalities:
+            prompt += f" {self.personalities[player_name]}"
+            
+        print(f"\n[SYSTEM PROMPT - {player_name}]\n{prompt}\n")
+        return prompt
 
     def get_player_action_prompt(
         self, player_name: str, action_type: ActionType
@@ -48,7 +72,7 @@ class PromptGenerator:
             case ActionType.ANSWER_ONLY:
                 return f"Answer like a caveman."
             case ActionType.VOTE:
-                return f"You have to find the human under the names {self.player_names}. It is life important! Go again over the dialog, who talks like a human or haven't talked? Who is the human? Only answer with the name!"
+                return f"You have to find the human under the names {self.player_names}. It is life important! Go over the dialog again, and reason about who is suspicious and why. Remember that you are {player_name} and you must NOT vote for yourself. Come to a conclusion on who to vote for, and then end your message with ##NAME##, replacing NAME with the name of the player you voted for."
             case ActionType.IGNORE_QUESTION:
                 return f"Talk about caveman stuff. Ignore the question."
             case ActionType.CHANGE_TOPIC:
@@ -69,7 +93,10 @@ class PromptGenerator:
         context_dialogue += "End of dialog."
 
         action = self.get_player_action_prompt(name, action_type)
-        return f"{context_dialogue}\n\n{action}" if len(message_history) > 0 else action
+        final_prompt = f"{context_dialogue}\n\n{action}" if len(message_history) > 0 else action
+        
+        print(f"\n[PROMPT CONTENT - {name} (Action: {action_type.name})]\n{final_prompt}\n")
+        return final_prompt
 
     def generate_moderator_system_content(self) -> str:
         return f"{self.get_moderator_prompt()}\n\nYou are the Moderator."
