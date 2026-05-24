@@ -107,7 +107,7 @@ class Game:
         name_to_player = {p.name: p for p in self.artifical_players}
         while len(self.chat) < 10 and self.state == "playing":
             speaker_names, meta = await self.moderator.decide_next_speakers_async(
-                self.chat, self.artifical_players
+                self.chat, self.artifical_players, self.prompt_gen
             )
             self.emit("system", f"Moderator selected next speakers: {', '.join(speaker_names)}", meta=meta)
             speakers = [name_to_player[n] for n in speaker_names if n in name_to_player]

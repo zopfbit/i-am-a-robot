@@ -206,9 +206,9 @@ class Moderator(Agent):
         return system, user
 
     def decide_next_speakers(
-        self, message_history: list["Message"], players: list["Player"]
+        self, message_history: list["Message"], players: list["Player"], prompt_gen: PromptGenerator
     ) -> tuple[list[str], dict]:
-        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players)
+        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players, prompt_gen)
         client = OpenAI(base_url=self.base_url, api_key=self.api_key)
         response = client.chat.completions.create(
             model=self.model.value,
@@ -219,9 +219,9 @@ class Moderator(Agent):
         return parse_names(response.choices[0].message.content, player_names=[p.name for p in players]), meta
 
     async def decide_next_speakers_async(
-        self, message_history: list["Message"], players: list["Player"]
+        self, message_history: list["Message"], players: list["Player"], prompt_gen: PromptGenerator
     ) -> tuple[list[str], dict]:
-        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players)
+        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players, prompt_gen)
         client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
         response = await client.chat.completions.create(
             model=self.model.value,
