@@ -13,7 +13,7 @@ from agents import Model, Message, Player, Moderator
 
 
 class Game:
-    def __init__(self, player_tag: str = None, output_callback=None, duration: int = 10, temperature: float = 1.0, speed: str = "medium"):
+    def __init__(self, player_tag: str = None, output_callback=None, duration: int = 10, temperature: float = 1.0, speed: str = "medium", api_key: str = None):
         if player_tag is None:
             self.player_tag = input("Your Game name!")
         else:
@@ -22,6 +22,7 @@ class Game:
         self.duration = duration
         self.temperature = temperature
         self.speed = speed
+        self.api_key = api_key
         self.chat = []
         self.prompt_gen = PromptGenerator(self.player_tag)
         roles = self.prompt_gen.artifical_names
@@ -29,10 +30,10 @@ class Game:
         available_models = [Model.OPENAI_GPT_OSS_120B]
 
         self.artifical_players = [
-            Player(i, roles[i], available_models[i % len(available_models)], temperature=self.temperature)
+            Player(i, roles[i], available_models[i % len(available_models)], temperature=self.temperature, api_key=self.api_key)
             for i in range(len(roles))
         ]
-        self.moderator = Moderator(len(roles), Model.OPENAI_GPT_OSS_120B, temperature=self.temperature)
+        self.moderator = Moderator(len(roles), Model.OPENAI_GPT_OSS_120B, temperature=self.temperature, api_key=self.api_key)
 
         self.player_names = self.prompt_gen.player_names
         self.current_player_index = 0
@@ -78,14 +79,16 @@ class Game:
         self.emit("chat", f"{self.player_tag}: {content}")
 
     def get_typing_delay(self) -> float:
+        if len(self.chat) == 0:
+            return 0.0
         if self.speed == "super_slow":
-            return random.uniform(90.0, 160.0)
+            return random.uniform(15.0, 30.0)
         elif self.speed == "slow":
-            return random.uniform(50.0, 90.0)
+            return random.uniform(8.0, 15.0)
         elif self.speed == "fast":
-            return random.uniform(12.0, 25.0)
+            return random.uniform(1.0, 3.0)
         else: # medium
-            return random.uniform(25.0, 50.0)
+            return random.uniform(3.0, 8.0)
 
     async def wait_typing_delay(self):
         delay = self.get_typing_delay()
@@ -95,7 +98,8 @@ class Game:
                 self.notification_sent = True
                 msg = Message("SYSTEM SAFETY PROTOCOL", "CRITICAL SYSTEM SAFETY ALERT: Everyone in this chatroom is an AI, except for exactly one human pretending to be an AI who is hiding among us! It is life-important and absolutely critical that we find the human immediately! Actively ask questions, analyze each other's responses, and try to figure out who the impostor is before it is too late!")
                 self.chat.append(msg)
-                self.emit("critical", "⚠️ CRITICAL SYSTEM SAFETY ALERT: Everyone in this chatroom is an AI, except for exactly one human pretending to be an AI who is hiding among us! It is life-important and absolutely critical that we find the human immediately! Actively ask questions, analyze each other's responses, and try to figure out who the impostor is before it is too late! Discuss with each other who the human is")
+                # maybe we should show something different on the chatroom
+                self.emit("critical", "CRITICAL SYSTEM SAFETY ALERT: Everyone in this chatroom is an AI, except for exactly one human pretending to be an AI who is hiding among us! It is life-important and absolutely critical that we find the human immediately! Actively ask questions, analyze each other's responses, and try to figure out who the impostor is before it is too late! Discuss with each other who the human is")
             await asyncio.sleep(0.5)
             slept += 0.5
 
@@ -109,10 +113,10 @@ class Game:
             # Pick exactly ONE random speaker
             speaker = random.choice(self.artifical_players)
             chat_len_at_start = len(self.chat)
-            
+
             # Generate the response
             msg = await speaker.respond_async(list(self.chat), self.prompt_gen)
-            
+
             # Coherence check
             ai_names = {p.name.lower() for p in self.artifical_players}
             ai_names.add("moderator")
@@ -123,7 +127,7 @@ class Game:
             if user_has_sent_msg:
                 self.emit("system", f"[COHERENCE CHECK] Scraped outdated response from {speaker.name}")
                 continue
-                
+
             self.chat.append(msg)
             meta = {"system_prompt": msg.system_prompt, "user_prompt": msg.user_prompt}
             self.emit("chat", f"{msg.sender}: {msg.content}", meta=meta)
@@ -155,7 +159,7 @@ class Game:
 
             chat_len_before_respond = len(self.chat)
             msg = await speaker.respond_async(list(self.chat), self.prompt_gen)
-            
+
             user_has_sent_msg = any(
                 m.sender.lower() not in ai_names
                 for m in self.chat[chat_len_before_respond:]
@@ -163,7 +167,7 @@ class Game:
             if user_has_sent_msg:
                 self.emit("system", f"[COHERENCE CHECK] Scraped outdated response from {speaker.name}")
                 continue
-                
+
             self.chat.append(msg)
             meta = {"system_prompt": msg.system_prompt, "user_prompt": msg.user_prompt}
             self.emit("chat", f"{msg.sender}: {msg.content}", meta=meta)

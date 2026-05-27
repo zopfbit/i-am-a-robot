@@ -19,7 +19,7 @@ async def get_index():
     return FileResponse(os.path.join(static_dir, "index.html"))
 
 @app.websocket("/ws/{player_name}")
-async def websocket_endpoint(websocket: WebSocket, player_name: str, duration: int = 10, temperature: float = 1.0, speed: str = "medium"):
+async def websocket_endpoint(websocket: WebSocket, player_name: str, duration: int = 10, temperature: float = 1.0, speed: str = "medium", api_key: str = None):
     await websocket.accept()
     
     # We use an asyncio Queue to safely pass messages from the Game's sync/async code to the websocket
@@ -29,7 +29,7 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str, duration: i
         # We can put items in the queue without needing await if we use put_nowait
         message_queue.put_nowait({"type": msg_type, "content": content, "meta": meta or {}})
 
-    game = Game(player_tag=player_name, output_callback=output_callback, duration=duration, temperature=temperature, speed=speed)
+    game = Game(player_tag=player_name, output_callback=output_callback, duration=duration, temperature=temperature, speed=speed, api_key=api_key)
     
     # Background task to drain the queue and send via websocket
     async def send_messages():
@@ -84,5 +84,6 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str, duration: i
 # To run the server directly (useful for local testing without uvicorn command line)
 if __name__ == "__main__":
     import uvicorn
-    print("Starting server on http://localhost:8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    print(f"Starting server on http://0.0.0.0:{port}")
+    uvicorn.run(app, host="0.0.0.0", port=port)

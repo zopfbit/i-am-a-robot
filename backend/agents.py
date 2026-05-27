@@ -42,9 +42,15 @@ class Agent(ABC):
         self.id = id
         self.name = name
         self.model = model
-        self.base_url = base_url
-        self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
         self.temperature = temperature
+        
+        self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY") or os.environ.get("GOOGLE_STUDIO_KEY")
+        if self.api_key and self.api_key.startswith("AIzaSy"):
+            self.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+            self.model_override = "gemini-1.5-flash"
+        else:
+            self.base_url = base_url
+            self.model_override = None
 
     @abstractmethod
     def get_system_content(
@@ -77,7 +83,7 @@ class Agent(ABC):
         try:
             start_time = time.time()
             response = client.chat.completions.create(
-                model=self.model.value,
+                model=self.model_override or self.model.value,
                 messages=messages,
                 temperature=self.temperature,
             )
@@ -116,7 +122,7 @@ class Agent(ABC):
         try:
             start_time = time.time()
             response = await client.chat.completions.create(
-                model=self.model.value,
+                model=self.model_override or self.model.value,
                 messages=messages,
                 temperature=self.temperature,
             )
@@ -136,9 +142,9 @@ class Agent(ABC):
 
 class Player(Agent):
     def __init__(
-        self, id: int, name: str = "Amanda", model: Model = Model.OPENAI_GPT_OSS_120B, temperature: float = 1.0
+        self, id: int, name: str = "Amanda", model: Model = Model.OPENAI_GPT_OSS_120B, temperature: float = 1.0, api_key: str = None
     ):
-        super().__init__(id, name, model, temperature=temperature)
+        super().__init__(id, name, model, api_key=api_key, temperature=temperature)
         self.role = name
         self.vote = None
 
@@ -178,8 +184,8 @@ class Player(Agent):
 
 
 class Moderator(Agent):
-    def __init__(self, id: int, model: Model = Model.OPENAI_GPT_OSS_120B, temperature: float = 1.0):
-        super().__init__(id, "Moderator", model, temperature=temperature)
+    def __init__(self, id: int, model: Model = Model.OPENAI_GPT_OSS_120B, temperature: float = 1.0, api_key: str = None):
+        super().__init__(id, "Moderator", model, api_key=api_key, temperature=temperature)
 
     def get_system_content(self, prompt_gen: PromptGenerator) -> str:
         return prompt_gen.generate_moderator_system_content()
@@ -206,7 +212,7 @@ class Moderator(Agent):
         system_prompt, user_prompt = self._build_speaker_prompt(message_history, players)
         client = OpenAI(base_url=self.base_url, api_key=self.api_key)
         response = client.chat.completions.create(
-            model=self.model.value,
+            model=self.model_override or self.model.value,
             messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
             temperature=self.temperature,
         )
@@ -219,7 +225,7 @@ class Moderator(Agent):
         system_prompt, user_prompt = self._build_speaker_prompt(message_history, players)
         client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
         response = await client.chat.completions.create(
-            model=self.model.value,
+            model=self.model_override or self.model.value,
             messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
             temperature=self.temperature,
         )
