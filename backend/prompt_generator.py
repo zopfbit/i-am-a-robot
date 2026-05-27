@@ -1,3 +1,5 @@
+import os
+import random
 from enum import Enum
 
 
@@ -21,40 +23,106 @@ class PromptGenerator:
         self.artifical_names = player_roles
         self.player_names = player_roles + [player_name]
         self.prompts = {}
+        self.personalities = {}
+
+        file_path = os.path.join(os.path.dirname(__file__), "personalities.txt")
+        groups = []
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+            raw_groups = content.split("---")
+            for rg in raw_groups:
+                traits = []
+                for line in rg.splitlines():
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        traits.append(line)
+                if traits:
+                    groups.append(traits)
+        except Exception:
+            groups = []
+
+        if len(groups) < 3:
+            groups = [
+                ["Grumpy", "Overly enthusiastic", "Paranoid", "Laid-back", "Nervous", "Intellectual"],
+                ["Sarcastic", "Cheerful", "Quiet and brief", "Dramatic", "Excessively formal", "Frequently using modern slang"],
+                ["Always annoyed by everyone", "A bit naive", "Constantly doubting others", "Easily distracted", "Trying extremely hard to fit in", "Obsessed with making logical arguments"]
+            ]
+
+        for role in self.artifical_names:
+            selected_traits = []
+            if len(groups) > 0:
+                g1 = groups[0]
+                n1 = random.randint(0, 2)
+                selected_traits.extend(random.sample(g1, min(len(g1), n1)))
+            if len(groups) > 1:
+                g2 = groups[1]
+                selected_traits.extend(random.sample(g2, min(len(g2), 1)))
+            if len(groups) > 2:
+                g3 = groups[2]
+                n3 = random.randint(0, 2)
+                selected_traits.extend(random.sample(g3, min(len(g3), n3)))
+
+            
+            formatted_traits = []
+            for idx, trait in enumerate(selected_traits):
+                t = trait.strip()
+                if idx > 0 and t and t[0].isupper() and not (len(t) > 1 and t[1].isupper()):
+                    t = t[0].lower() + t[1:]
+                formatted_traits.append(t)
+            
+            if formatted_traits:
+                self.personalities[role] = f"Your personality is: {', '.join(formatted_traits)}."
+            else:
+                self.personalities[role] = "Your personality is: A normal, everyday person."
+
 
     def get_init_prompt(self) -> str:
         roles_str = ", ".join(self.player_names)
         return (
-            f"Narrator: {len(self.player_names)} people are in a room: {roles_str}. "
-            f"{len(self.player_names)-1} of you are AIs, but one of you is a human hiding among you. "
-            f"Your goal is to find out who the human is."
+            f"Narrator: {len(self.player_names)} people are in a chatroom: {roles_str}. "
+            f"You are here to chat and discuss freely."
         )
 
     def get_players(self) -> list[str]:
         return self.player_names
 
     def get_player_system_prompt(self, player_name: str) -> str:
-        return f"You are role playing as {player_name}. You always have to answer in english. You have to act as a human. So think like one. Do not act like an AI. No emojis!"
+        prompt = f"You are role playing as {player_name}. You always have to answer in english. You have to act as a human. So think like one. Do not act like an AI. No emojis!"
+        if player_name in self.personalities:
+            prompt += f" {self.personalities[player_name]}"
+            
+        print(f"\n[SYSTEM PROMPT - {player_name}]\n{prompt}\n")
+        return prompt
 
     def get_player_action_prompt(
         self, player_name: str, action_type: ActionType
     ) -> str:
         # maybe we roll randomly which action_type is chosen?
+        prompt = ""
         match action_type:
             case ActionType.ASK_QUESTION:
-                return f"Ask caveman question!"
+                prompt = f"Ask a question!"
             case ActionType.ANSWER_AND_ASK:
-                return f"Answer like a caveman and question like a caveman."
+                prompt = f"talk freely and naturally, while interacting with the other players"
             case ActionType.ANSWER_ONLY:
-                return f"Answer like a caveman."
+                prompt = f"Answer a question."
             case ActionType.VOTE:
-                return f"You have to find the human under the names {self.player_names}. It is life important! Go again over the dialog, who talks like a human or haven't talked? Who is the human? Only answer with the name!"
+                other_players = [p for p in self.player_names if p != player_name]
+                return f"Remember: Everyone in this chatroom is an AI, except for exactly one human pretending to be an AI whom you are trying to find! You have to find that human among the names {self.player_names}. Go over the dialog again. For each other player in {other_players}, write a quick one-sentence evaluation of why they might be the human (pretending to be an AI) or why they are likely a fellow AI player. Do NOT write any evaluation, reasoning, or analysis about yourself ({player_name}), as you already know you are an AI. Only evaluate the other players. Then, reason about who is the most suspicious. Remember that you are {player_name} and you must NOT vote for yourself. Come to a conclusion on who to vote for, and then end your message with ##NAME##, replacing NAME with the name of the player you voted for."
             case ActionType.IGNORE_QUESTION:
-                return f"Talk about caveman stuff. Ignore the question."
+                prompt = f"Talk freely and naturally"
             case ActionType.CHANGE_TOPIC:
-                return f"Talk about random stuff."
+                prompt = f"Talk freely and naturally"
             case _:
-                return ""
+                prompt = ""
+
+        if prompt:
+            n = random.randint(1, 5)
+            sentence_word = "sentence" if n == 1 else "sentences"
+            prompt += f" Keep your response relatively brief (e.g. {n} {sentence_word})."
+        return prompt
+
 
     def get_moderator_prompt(self) -> str:
         return "Your Goal is to create a fluent interesting, realistic chat discussion. You can choose which AI can answer and when."
@@ -69,7 +137,10 @@ class PromptGenerator:
         context_dialogue += "End of dialog."
 
         action = self.get_player_action_prompt(name, action_type)
-        return f"{context_dialogue}\n\n{action}" if len(message_history) > 0 else action
+        final_prompt = f"{context_dialogue}\n\n{action}" if len(message_history) > 0 else action
+        
+        print(f"\n[PROMPT CONTENT - {name} (Action: {action_type.name})]\n{final_prompt}\n")
+        return final_prompt
 
     def generate_moderator_system_content(self) -> str:
         return f"{self.get_moderator_prompt()}\n\nYou are the Moderator."

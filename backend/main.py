@@ -13,8 +13,15 @@ from agents import Model, Message, Player, Moderator
 
 
 class Game:
-    def __init__(self):
-        self.player_tag = input("Your Game name!")
+    def __init__(self, player_tag: str = None, output_callback=None, duration: int = 10, temperature: float = 1.0, speed: str = "medium"):
+        if player_tag is None:
+            self.player_tag = input("Your Game name!")
+        else:
+            self.player_tag = player_tag
+        self.output_callback = output_callback
+        self.duration = duration
+        self.temperature = temperature
+        self.speed = speed
         self.chat = []
         self.prompt_gen = PromptGenerator(self.player_tag)
         roles = self.prompt_gen.artifical_names
@@ -22,84 +29,167 @@ class Game:
         available_models = [Model.OPENAI_GPT_OSS_120B]
 
         self.artifical_players = [
-            Player(i, roles[i], available_models[i % len(available_models)])
+            Player(i, roles[i], available_models[i % len(available_models)], temperature=self.temperature)
             for i in range(len(roles))
         ]
-        self.moderator = Moderator(len(roles), Model.OPENAI_GPT_OSS_120B)
+        self.moderator = Moderator(len(roles), Model.OPENAI_GPT_OSS_120B, temperature=self.temperature)
 
         self.player_names = self.prompt_gen.player_names
         self.current_player_index = 0
         self.state = "playing"
         self.start_time = time.time()
+        self.notification_sent = False
 
-    def get_most_voted_player_id(self):
+    def emit(self, msg_type: str, content: str, meta: dict = None):
+        if self.output_callback:
+            self.output_callback(msg_type, content, meta)
+        else:
+            print(content)
+
+    async def get_most_voted_player_id(self):
         votes = [0] * len(self.player_names)
-        id_player = {player: i for i, player in enumerate(self.player_names)}
-        print("\nVoting begins!")
+        id_player = {player.lower(): i for i, player in enumerate(self.player_names)}
+        self.emit("system", "\nVoting begins!")
 
-        # only artifical players vote
-        for i, player in enumerate(self.artifical_players):
-            voted_for, reasoning = player.decide_vote(self.chat, self.prompt_gen, self.player_names)
-            print(f"\n{player.name} reasoning: {reasoning}")
+        # artifical players vote concurrently
+        tasks = [p.decide_vote_async(self.chat, self.prompt_gen, self.player_names) for p in self.artifical_players]
+        results = await asyncio.gather(*tasks)
+
+        for player, (voted_for, reasoning, msg) in zip(self.artifical_players, results):
+            meta = {"system_prompt": msg.system_prompt, "user_prompt": msg.user_prompt}
+            self.emit("system", f"\n{player.name} reasoning: {reasoning}", meta=meta)
 
             if voted_for:
-                votes[id_player[voted_for]] += 1
-                print(f"{player.name} voted for: {voted_for}")
+                if voted_for in id_player:
+                    votes[id_player[voted_for]] += 1
+                    self.emit("system", f"{player.name} voted for: {voted_for}", meta=meta)
+                else:
+                    self.emit("system", f"{player.name} voted for unknown: {voted_for}", meta=meta)
             else:
-                print(f"{player.name} voted ambiguously")
+                self.emit("system", f"{player.name} voted ambiguously", meta=meta)
 
         max_votes = max(votes)
         max_ids = [idx for idx, v in enumerate(votes) if v == max_votes]
         return max_ids
 
+    def add_user_message(self, content: str):
+        msg = Message(self.player_tag, content)
+        self.chat.append(msg)
+        self.emit("chat", f"{self.player_tag}: {content}")
+
+    def get_typing_delay(self) -> float:
+        if self.speed == "super_slow":
+            return random.uniform(90.0, 160.0)
+        elif self.speed == "slow":
+            return random.uniform(50.0, 90.0)
+        elif self.speed == "fast":
+            return random.uniform(12.0, 25.0)
+        else: # medium
+            return random.uniform(25.0, 50.0)
+
+    async def wait_typing_delay(self):
+        delay = self.get_typing_delay()
+        slept = 0.0
+        while slept < delay and self.is_chatting_time():
+            if not self.notification_sent and (time.time() - self.start_time >= self.duration / 2):
+                self.notification_sent = True
+                msg = Message("SYSTEM SAFETY PROTOCOL", "CRITICAL SYSTEM SAFETY ALERT: Everyone in this chatroom is an AI, except for exactly one human pretending to be an AI who is hiding among us! It is life-important and absolutely critical that we find the human immediately! Actively ask questions, analyze each other's responses, and try to figure out who the impostor is before it is too late!")
+                self.chat.append(msg)
+                self.emit("critical", "⚠️ CRITICAL SYSTEM SAFETY ALERT: Everyone in this chatroom is an AI, except for exactly one human pretending to be an AI who is hiding among us! It is life-important and absolutely critical that we find the human immediately! Actively ask questions, analyze each other's responses, and try to figure out who the impostor is before it is too late! Discuss with each other who the human is")
+            await asyncio.sleep(0.5)
+            slept += 0.5
+
     async def chat_random(self):
         """Chat loop with random player selection"""
         while self.is_chatting_time() and len(self.chat) < 100:
-            k = min(random.randint(1, 3), len(self.artifical_players))
-            speakers = random.sample(self.artifical_players, k)
-            tasks = [p.respond_async(self.chat, self.prompt_gen) for p in speakers]
-            responses = await asyncio.gather(*tasks)
-            for msg in responses:
-                self.chat.append(msg)
-                print(f"{msg.sender}: {msg.content}")
+            await self.wait_typing_delay()
+            if not self.is_chatting_time():
+                break
+
+            # Pick exactly ONE random speaker
+            speaker = random.choice(self.artifical_players)
+            chat_len_at_start = len(self.chat)
+            
+            # Generate the response
+            msg = await speaker.respond_async(list(self.chat), self.prompt_gen)
+            
+            # Coherence check
+            ai_names = {p.name.lower() for p in self.artifical_players}
+            ai_names.add("moderator")
+            user_has_sent_msg = any(
+                m.sender.lower() not in ai_names
+                for m in self.chat[chat_len_at_start:]
+            )
+            if user_has_sent_msg:
+                self.emit("system", f"[COHERENCE CHECK] Scraped outdated response from {speaker.name}")
+                continue
+                
+            self.chat.append(msg)
+            meta = {"system_prompt": msg.system_prompt, "user_prompt": msg.user_prompt}
+            self.emit("chat", f"{msg.sender}: {msg.content}", meta=meta)
 
     async def chat_moderated(self):
         """Chat loop with moderator-driven speaker selection."""
         name_to_player = {p.name: p for p in self.artifical_players}
         while self.is_chatting_time() and len(self.chat) < 100:
-            speaker_names = await self.moderator.decide_next_speakers_async(
-                self.chat, self.artifical_players
+            await self.wait_typing_delay()
+            if not self.is_chatting_time():
+                break
+
+            chat_len_at_start = len(self.chat)
+            speaker_names, meta = await self.moderator.decide_next_speakers_async(
+                list(self.chat), self.artifical_players
             )
+            ai_names = {p.name.lower() for p in self.artifical_players}
+            ai_names.add("moderator")
+            if any(m.sender.lower() not in ai_names for m in self.chat[chat_len_at_start:]):
+                continue
+
+            self.emit("system", f"Moderator selected next speakers: {', '.join(speaker_names)}", meta=meta)
             speakers = [name_to_player[n] for n in speaker_names if n in name_to_player]
             if not speakers:
                 continue
-            tasks = [p.respond_async(self.chat, self.prompt_gen) for p in speakers]
-            responses = await asyncio.gather(*tasks)
-            for msg in responses:
-                self.chat.append(msg)
-                print(f"{msg.sender}: {msg.content}")
+
+            # Select only the first speaker to avoid multiple AIs speaking at once
+            speaker = speakers[0]
+
+            chat_len_before_respond = len(self.chat)
+            msg = await speaker.respond_async(list(self.chat), self.prompt_gen)
+            
+            user_has_sent_msg = any(
+                m.sender.lower() not in ai_names
+                for m in self.chat[chat_len_before_respond:]
+            )
+            if user_has_sent_msg:
+                self.emit("system", f"[COHERENCE CHECK] Scraped outdated response from {speaker.name}")
+                continue
+                
+            self.chat.append(msg)
+            meta = {"system_prompt": msg.system_prompt, "user_prompt": msg.user_prompt}
+            self.emit("chat", f"{msg.sender}: {msg.content}", meta=meta)
 
     async def start_game(self):
         # INIT
-        print(self.prompt_gen.get_init_prompt())
+        self.emit("system", self.prompt_gen.get_init_prompt())
 
         await self.chat_random()
         # await self.chat_moderated()
 
         # reveal the game
-        max_ids = self.get_most_voted_player_id()
+        max_ids = await self.get_most_voted_player_id()
         if self.player_tag in [self.player_names[i] for i in max_ids] and len(
             max_ids
         ) != len(self.artifical_players):
             self.win = False
-            print("\nThey voted for you! You lose!")
+            self.emit("system", "\nThey voted for you! You lose!")
         else:
             self.win = True
-            print("\nYou survived! You win!")
+            self.emit("system", "\nYou survived! You win!")
 
     def is_chatting_time(self):
-        return time.time() - self.start_time <= 10
+        return time.time() - self.start_time <= self.duration
 
 
-game = Game()
-asyncio.run(game.start_game())
+if __name__ == "__main__":
+    game = Game()
+    asyncio.run(game.start_game())
