@@ -4,226 +4,414 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>I Am A Robot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0f172a;
-            --surface-color: #1e293b;
-            --primary-color: #3b82f6;
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --system-color: #f59e0b;
-            --border-color: #334155;
-            --player-color: #10b981;
+            --bg-primary: #09090b;
+            --bg-secondary: #18181b;
+            --bg-tertiary: #27272a;
+            --border: #3f3f46;
+            --border-hover: #52525b;
+            --text-primary: #fafafa;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent: #22c55e;
+            --accent-hover: #16a34a;
+            --accent-muted: rgba(34, 197, 94, 0.15);
+            --warning: #f59e0b;
+            --warning-muted: rgba(245, 158, 11, 0.15);
+            --danger: #ef4444;
+            --danger-muted: rgba(239, 68, 68, 0.15);
+            --info: #3b82f6;
+            --info-muted: rgba(59, 130, 246, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background-color: var(--bg-primary);
             color: var(--text-primary);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            overflow: hidden;
+            padding: 1rem;
         }
 
-        #login-screen, #chat-screen {
-            width: 100%;
-            max-width: 600px;
-            height: 90vh;
-            background-color: var(--surface-color);
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
+        /* Login Screen */
         #login-screen {
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
+            width: 100%;
+            max-width: 420px;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2.5rem;
+        }
+
+        .login-header {
             text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 64px;
+            height: 64px;
+            background: var(--accent-muted);
+            border: 1px solid var(--accent);
+            border-radius: 16px;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo svg {
+            width: 32px;
+            height: 32px;
+            color: var(--accent);
         }
 
         h1 {
-            font-size: 2rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
             margin-bottom: 0.5rem;
-            background: linear-gradient(135deg, #60a5fa, #3b82f6);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
         }
 
         .subtitle {
             color: var(--text-secondary);
-            margin-bottom: 2rem;
+            font-size: 0.9375rem;
+            line-height: 1.5;
         }
 
-        input[type="text"] {
-            width: 80%;
-            padding: 1rem;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            font-size: 1.1rem;
-            margin-bottom: 1.5rem;
-            outline: none;
-            transition: border-color 0.3s;
+        .form-group {
+            margin-bottom: 1.25rem;
         }
 
-        input[type="text"]:focus {
-            border-color: var(--primary-color);
-        }
-
-        button {
-            padding: 1rem 2rem;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background-color 0.3s, transform 0.1s;
-        }
-
-        .join-btn:hover {
-            background-color: var(--primary-hover);
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        .config-group {
-            margin-bottom: 1.5rem;
-            text-align: left;
-        }
-        
-        .config-group label {
+        .form-group label {
             display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
             margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            color: var(--text-secondary);
         }
 
-        .chat-container {
-            transform: scale(0.98);
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
-        #chat-screen {
-            display: none;
+        .form-group input::placeholder {
+            color: var(--text-muted);
         }
 
-        .chat-header {
-            padding: 1rem 1.5rem;
-            background-color: rgba(30, 41, 59, 0.9);
-            border-bottom: 1px solid var(--border-color);
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(10px);
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-muted);
         }
 
-        .chat-messages {
-            flex-grow: 1;
-            padding: 1.5rem;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
+        .form-group select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 2.5rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 1rem;
         }
 
-        .message {
-            max-width: 80%;
-            padding: 0.8rem 1rem;
-            border-radius: 12px;
-            line-height: 1.4;
-            animation: fadeIn 0.3s ease-out;
-            word-wrap: break-word;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .msg-system {
-            align-self: center;
-            background-color: transparent;
-            color: var(--system-color);
-            font-style: italic;
-            text-align: center;
-            max-width: 90%;
-            border: 1px solid rgba(245, 158, 11, 0.2);
-            font-size: 0.95rem;
-        }
-
-        .msg-critical {
-            align-self: center;
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
-            color: #f87171;
-            border: 2px solid rgba(239, 68, 68, 0.4);
-            border-radius: 12px;
-            padding: 1.2rem;
-            max-width: 90%;
-            text-align: center;
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            font-size: 0.9375rem;
             font-weight: 600;
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
-            font-size: 1.05rem;
-            letter-spacing: 0.02em;
-            animation: pulse-border 2s infinite, fadeIn 0.3s ease-out;
+            font-family: inherit;
+            background-color: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
         }
 
-        @keyframes pulse-border {
-            0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); }
-            50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); border-color: rgba(239, 68, 68, 0.8); }
-            100% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.4); }
+        .btn:hover {
+            background-color: var(--accent-hover);
         }
 
-        @keyframes pulse-timer {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.7; transform: scale(0.97); }
-            100% { opacity: 1; transform: scale(1); }
+        .btn:active {
+            transform: scale(0.98);
         }
 
-        .msg-chat {
-            align-self: flex-start;
-            background-color: var(--bg-color);
-            border-bottom-left-radius: 2px;
+        /* Chat Screen */
+        #chat-screen {
+            display: none;
+            width: 100%;
+            max-width: 680px;
+            height: 90vh;
+            max-height: 800px;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        .msg-sender {
-            font-weight: bold;
-            font-size: 0.85rem;
-            margin-bottom: 0.3rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+        .chat-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            padding: 1rem 1.25rem;
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
         }
 
+        .chat-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .chat-header-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: var(--accent-muted);
+            border-radius: 8px;
+        }
+
+        .chat-header-icon svg {
+            width: 18px;
+            height: 18px;
+            color: var(--accent);
+        }
+
+        .chat-header-info h2 {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            margin-bottom: 0.125rem;
+        }
+
+        .chat-header-info span {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        .chat-header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .timer {
+            display: none;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--accent);
+            transition: all 0.3s;
+        }
+
+        .timer svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .timer.warning {
+            color: var(--warning);
+            border-color: rgba(245, 158, 11, 0.3);
+            background-color: var(--warning-muted);
+        }
+
+        .timer.danger {
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.3);
+            background-color: var(--danger-muted);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .player-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+        }
+
+        .player-badge .dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent);
+            border-radius: 50%;
+        }
+
+        /* Chat Messages */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background-color: var(--border);
+            border-radius: 3px;
+        }
+
+        .message {
+            max-width: 85%;
+            animation: slideIn 0.2s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-bubble {
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            line-height: 1.5;
+            font-size: 0.9375rem;
+        }
+
+        .message-sender {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+        }
+
+        .message.outgoing {
+            align-self: flex-end;
+        }
+
+        .message.outgoing .message-bubble {
+            background-color: var(--accent);
+            color: var(--bg-primary);
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.outgoing .message-sender {
+            justify-content: flex-end;
+        }
+
+        .message.incoming {
+            align-self: flex-start;
+        }
+
+        .message.incoming .message-bubble {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.system {
+            align-self: center;
+            max-width: 90%;
+        }
+
+        .message.system .message-bubble {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            text-align: center;
+            font-size: 0.875rem;
+        }
+
+        .message.critical {
+            align-self: center;
+            max-width: 90%;
+        }
+
+        .message.critical .message-bubble {
+            background: var(--danger-muted);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: var(--danger);
+            text-align: center;
+            font-weight: 500;
+            padding: 1rem 1.25rem;
+        }
+
+        /* Prompt Details */
         .prompt-toggle {
-            cursor: pointer;
-            opacity: 0.6;
-            transition: opacity 0.2s, transform 0.2s;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             width: 20px;
             height: 20px;
-            border-radius: 50%;
+            border-radius: 4px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity 0.2s, background-color 0.2s;
         }
 
         .prompt-toggle:hover {
             opacity: 1;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: var(--bg-tertiary);
+        }
+
+        .prompt-toggle svg {
+            width: 12px;
+            height: 12px;
+            transition: transform 0.2s;
         }
 
         .prompt-toggle.open svg {
@@ -232,77 +420,155 @@
 
         .prompt-details {
             display: none;
-            margin-top: 0.8rem;
-            padding: 0.8rem;
-            background-color: rgba(0, 0, 0, 0.2);
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background-color: var(--bg-primary);
             border-radius: 8px;
-            border-left: 2px solid var(--primary-color);
-            font-size: 0.8rem;
+            border-left: 2px solid var(--info);
+            font-size: 0.8125rem;
             color: var(--text-secondary);
         }
 
         .prompt-details.show {
             display: block;
-            animation: fadeIn 0.2s ease-out;
         }
 
         .prompt-section {
             margin-bottom: 0.5rem;
         }
 
+        .prompt-section:last-child {
+            margin-bottom: 0;
+        }
+
         .prompt-section strong {
-            color: var(--text-primary);
             display: block;
-            margin-bottom: 0.2rem;
+            color: var(--text-primary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
         }
 
+        /* Typing Indicator */
         .typing-indicator {
-            align-self: flex-start;
-            padding: 0.5rem 1rem;
-            color: var(--text-secondary);
-            font-style: italic;
-            font-size: 0.9rem;
             display: none;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0 1.25rem 0.75rem;
+            font-size: 0.8125rem;
+            color: var(--text-muted);
         }
 
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background-color: var(--text-muted);
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-4px); }
+        }
+
+        /* Chat Input */
         .chat-input-container {
             display: flex;
-            padding: 1rem;
-            background-color: var(--surface-color);
-            border-top: 1px solid var(--border-color);
-            gap: 0.5rem;
+            gap: 0.75rem;
+            padding: 1rem 1.25rem;
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border);
         }
 
         #chat-input {
-            flex-grow: 1;
+            flex: 1;
             padding: 0.75rem 1rem;
+            font-size: 0.9375rem;
+            font-family: inherit;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border);
             border-radius: 8px;
-            border: 1px solid var(--border-color);
-            background-color: var(--bg-color);
             color: var(--text-primary);
-            font-size: 1rem;
             outline: none;
-            transition: border-color 0.3s;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        #chat-input::placeholder {
+            color: var(--text-muted);
         }
 
         #chat-input:focus {
-            border-color: var(--primary-color);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-muted);
         }
 
         #send-btn {
-            padding: 0.75rem 1.5rem;
-            background-color: var(--primary-color);
-            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            background-color: var(--accent);
             border: none;
             border-radius: 8px;
-            font-size: 1rem;
             cursor: pointer;
-            font-weight: 600;
-            transition: background-color 0.3s;
+            transition: background-color 0.2s, transform 0.1s;
         }
 
         #send-btn:hover {
-            background-color: #2563eb;
+            background-color: var(--accent-hover);
+        }
+
+        #send-btn:active {
+            transform: scale(0.95);
+        }
+
+        #send-btn svg {
+            width: 20px;
+            height: 20px;
+            color: var(--bg-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            body {
+                padding: 0;
+            }
+
+            #login-screen {
+                border-radius: 0;
+                border: none;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+
+            #chat-screen {
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+                border: none;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -310,53 +576,104 @@
 
     <!-- Login Screen -->
     <div id="login-screen">
-        <div class="login-box">
+        <div class="login-header">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="10" rx="2"/>
+                    <circle cx="12" cy="5" r="2"/>
+                    <path d="M12 7v4"/>
+                    <line x1="8" y1="16" x2="8" y2="16"/>
+                    <line x1="16" y1="16" x2="16" y2="16"/>
+                </svg>
+            </div>
             <h1>I Am A Robot</h1>
-            <input type="text" id="player-name" class="name-input" placeholder="Enter your name..." autocomplete="off" style="margin-bottom: 1rem;">
-            
-            <div class="config-group">
-                <label for="game-duration">Game Duration (seconds):</label>
-                <input type="number" id="game-duration" class="name-input" value="10" min="5" max="300" style="margin-bottom: 0;">
-            </div>
-            
-            <div class="config-group">
-                <label for="ai-temperature">AI Temperature (0.0 to 2.0):</label>
-                <input type="number" id="ai-temperature" class="name-input" value="1.0" min="0.0" max="2.0" step="0.1" style="margin-bottom: 0;">
-            </div>
-
-            <div class="config-group">
-                <label for="chat-speed">Chat Speed:</label>
-                <select id="chat-speed" style="width: 80%; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--bg-color); color: var(--text-primary); font-size: 1.1rem; outline: none; margin-bottom: 0;">
-                    <option value="super_slow">Super Slow (90-160s delay)</option>
-                    <option value="slow">Slow (50-90s delay)</option>
-                    <option value="medium" selected>Medium (25-50s delay)</option>
-                    <option value="fast">Fast (12-25s delay)</option>
-                </select>
-            </div>
-
-            <button class="join-btn" id="start-btn">Join Game</button>
+            <p class="subtitle">Can you spot the human among the AI players?</p>
         </div>
+
+        <div class="form-group">
+            <label for="player-name">Your Name</label>
+            <input type="text" id="player-name" placeholder="Enter your name..." autocomplete="off">
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="game-duration">Duration (sec)</label>
+                <input type="number" id="game-duration" value="10" min="5" max="300">
+            </div>
+            <div class="form-group">
+                <label for="ai-temperature">AI Temp</label>
+                <input type="number" id="ai-temperature" value="1.0" min="0.0" max="2.0" step="0.1">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="chat-speed">Chat Speed</label>
+            <select id="chat-speed">
+                <option value="super_slow">Super Slow (90-160s delay)</option>
+                <option value="slow">Slow (50-90s delay)</option>
+                <option value="medium" selected>Medium (25-50s delay)</option>
+                <option value="fast">Fast (12-25s delay)</option>
+            </select>
+        </div>
+
+        <button class="btn" id="start-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            Join Game
+        </button>
     </div>
 
     <!-- Chat Screen -->
     <div id="chat-screen">
         <div class="chat-header">
-            <span>Room: <span id="room-name">Main</span></span>
-            <div style="display: flex; align-items: center; gap: 1.2rem;">
-                <span id="timer-display" style="background-color: rgba(255, 255, 255, 0.05); padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid var(--border-color); color: #60a5fa; font-family: monospace; font-size: 1.1rem; display: none; align-items: center; gap: 0.4rem; transition: all 0.3s ease;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <div class="chat-header-left">
+                <div class="chat-header-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </div>
+                <div class="chat-header-info">
+                    <h2>Game Room</h2>
+                    <span>Find the human</span>
+                </div>
+            </div>
+            <div class="chat-header-right">
+                <div class="timer" id="timer-display">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
                     <span id="timer-sec">00:00</span>
-                </span>
-                <span id="player-display"></span>
+                </div>
+                <div class="player-badge">
+                    <span class="dot"></span>
+                    <span id="player-display"></span>
+                </div>
             </div>
         </div>
+
         <div class="chat-messages" id="chat-messages">
             <!-- Messages go here -->
         </div>
-        <div class="typing-indicator" id="typing-indicator">AIs are typing...</div>
+
+        <div class="typing-indicator" id="typing-indicator">
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            AIs are typing...
+        </div>
+
         <div class="chat-input-container">
             <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
-            <button id="send-btn">Send</button>
+            <button id="send-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"/>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+            </button>
         </div>
     </div>
 
@@ -372,6 +689,13 @@
 
         startBtn.addEventListener('click', startGame);
 
+        // Allow Enter key to start game from name input
+        document.getElementById('player-name').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                startGame();
+            }
+        });
+
         function startGame() {
             const nameInput = document.getElementById('player-name');
             const durationInput = document.getElementById('game-duration');
@@ -384,7 +708,13 @@
             const speed = speedInput.value;
             
             if (!playerName) {
-                alert("Please enter a name");
+                nameInput.focus();
+                nameInput.style.borderColor = 'var(--danger)';
+                nameInput.style.boxShadow = '0 0 0 3px var(--danger-muted)';
+                setTimeout(() => {
+                    nameInput.style.borderColor = '';
+                    nameInput.style.boxShadow = '';
+                }, 2000);
                 return;
             }
 
@@ -400,12 +730,12 @@
 
             ws.onopen = () => {
                 addMessage('system', 'Connected to the game server. Waiting for game to start...');
-                typingIndicator.style.display = 'block';
+                typingIndicator.style.display = 'flex';
 
                 // Start countdown timer
                 const timerEl = document.getElementById('timer-display');
                 const timerSec = document.getElementById('timer-sec');
-                timerEl.style.display = 'inline-flex';
+                timerEl.style.display = 'flex';
 
                 let timeLeft = duration;
                 if (timerInterval) clearInterval(timerInterval);
@@ -416,26 +746,19 @@
                     timerSec.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 
                     const percent = (timeLeft / duration) * 100;
+                    timerEl.classList.remove('warning', 'danger');
+                    
                     if (percent < 20) {
-                        timerEl.style.color = '#ef4444';
-                        timerEl.style.borderColor = 'rgba(239, 68, 68, 0.4)';
-                        timerEl.style.animation = 'pulse-timer 1s infinite';
+                        timerEl.classList.add('danger');
                     } else if (percent < 50) {
-                        timerEl.style.color = '#f59e0b';
-                        timerEl.style.borderColor = 'rgba(245, 158, 11, 0.4)';
-                        timerEl.style.animation = 'none';
-                    } else {
-                        timerEl.style.color = '#60a5fa';
-                        timerEl.style.borderColor = 'var(--border-color)';
-                        timerEl.style.animation = 'none';
+                        timerEl.classList.add('warning');
                     }
 
                     if (timeLeft <= 0) {
                         clearInterval(timerInterval);
                         timerSec.textContent = 'VOTING';
-                        timerEl.style.color = '#f59e0b';
-                        timerEl.style.borderColor = 'rgba(245, 158, 11, 0.4)';
-                        timerEl.style.animation = 'pulse-timer 1.5s infinite';
+                        timerEl.classList.remove('danger');
+                        timerEl.classList.add('warning');
                         return;
                     }
                     timeLeft--;
@@ -453,7 +776,6 @@
                 } else if (data.type === 'critical') {
                     addMessage('critical', data.content, data.meta);
                 } else if (data.type === 'chat') {
-                    // Extract sender from "name: content" format
                     const splitIdx = data.content.indexOf(':');
                     if (splitIdx > -1) {
                         const sender = data.content.substring(0, splitIdx);
@@ -464,7 +786,6 @@
                     }
                 }
                 
-                // If we get a "survived" or "lose" message, hide typing indicator and stop timer
                 if (data.content.includes("You win") || data.content.includes("You lose")) {
                     typingIndicator.style.display = 'none';
                     if (timerInterval) clearInterval(timerInterval);
@@ -485,7 +806,7 @@
             
             const toggleBtn = document.createElement('div');
             toggleBtn.className = 'prompt-toggle';
-            toggleBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
+            toggleBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
             
             const detailsDiv = document.createElement('div');
             detailsDiv.className = 'prompt-details';
@@ -493,13 +814,13 @@
             if (meta.system_prompt) {
                 const sysDiv = document.createElement('div');
                 sysDiv.className = 'prompt-section';
-                sysDiv.innerHTML = `<strong>System Prompt:</strong> ${meta.system_prompt.replace(/\n/g, '<br>')}`;
+                sysDiv.innerHTML = `<strong>System Prompt</strong>${meta.system_prompt.replace(/\n/g, '<br>')}`;
                 detailsDiv.appendChild(sysDiv);
             }
             if (meta.user_prompt) {
                 const userDiv = document.createElement('div');
                 userDiv.className = 'prompt-section';
-                userDiv.innerHTML = `<strong>User Prompt:</strong> ${meta.user_prompt.replace(/\n/g, '<br>')}`;
+                userDiv.innerHTML = `<strong>User Prompt</strong>${meta.user_prompt.replace(/\n/g, '<br>')}`;
                 detailsDiv.appendChild(userDiv);
             }
             
@@ -513,60 +834,56 @@
 
         function addMessage(type, content, meta = null) {
             const div = document.createElement('div');
-            div.className = `message msg-${type}`;
+            div.className = `message ${type}`;
             
-            const contentDiv = document.createElement('div');
-            contentDiv.innerHTML = content.replace(/\n/g, '<br>');
-            div.appendChild(contentDiv);
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.innerHTML = content.replace(/\n/g, '<br>');
             
             const promptUI = buildPromptDetails(meta);
             if (promptUI) {
-                const headerDiv = document.createElement('div');
-                headerDiv.className = 'msg-sender';
-                headerDiv.style.justifyContent = 'flex-end';
-                headerDiv.appendChild(promptUI.toggleBtn);
-                div.insertBefore(headerDiv, contentDiv);
+                const senderDiv = document.createElement('div');
+                senderDiv.className = 'message-sender';
+                senderDiv.style.justifyContent = 'flex-end';
+                senderDiv.appendChild(promptUI.toggleBtn);
+                div.appendChild(senderDiv);
+            }
+            
+            div.appendChild(bubble);
+            
+            if (promptUI) {
                 div.appendChild(promptUI.detailsDiv);
             }
             
-            // Insert into the chat messages container
             chatMessages.appendChild(div);
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
         function addChatMessage(sender, content, meta = null) {
             const div = document.createElement('div');
-            div.className = 'message msg-chat';
-            
             const playerName = document.getElementById('player-name').value.trim();
-            if (sender.toLowerCase() === playerName.toLowerCase()) {
-                div.style.alignSelf = 'flex-end';
-                div.style.backgroundColor = 'var(--primary-color)';
-                div.style.borderBottomRightRadius = '2px';
-                div.style.borderBottomLeftRadius = '12px';
-            } else {
-                div.style.alignSelf = 'flex-start';
-                div.style.backgroundColor = 'var(--bg-color)';
-                div.style.borderBottomLeftRadius = '2px';
-            }
+            const isOutgoing = sender.toLowerCase() === playerName.toLowerCase();
+            
+            div.className = `message ${isOutgoing ? 'outgoing' : 'incoming'}`;
             
             const senderDiv = document.createElement('div');
-            senderDiv.className = 'msg-sender';
+            senderDiv.className = 'message-sender';
             
             const nameSpan = document.createElement('span');
             nameSpan.textContent = sender;
             senderDiv.appendChild(nameSpan);
-            
-            const contentDiv = document.createElement('div');
-            contentDiv.textContent = content; // safer than innerHTML for chat
             
             const promptUI = buildPromptDetails(meta);
             if (promptUI) {
                 senderDiv.appendChild(promptUI.toggleBtn);
             }
             
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.textContent = content;
+            
             div.appendChild(senderDiv);
-            div.appendChild(contentDiv);
+            div.appendChild(bubble);
             
             if (promptUI) {
                 div.appendChild(promptUI.detailsDiv);
