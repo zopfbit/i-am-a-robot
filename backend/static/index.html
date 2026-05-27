@@ -142,6 +142,130 @@
             gap: 1rem;
         }
 
+        /* Slider Styles */
+        .slider-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .slider-header label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .slider-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--accent);
+            background-color: var(--accent-muted);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .slider-container {
+            position: relative;
+            height: 8px;
+        }
+
+        .slider-track {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 6px;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            transform: translateY(-50%);
+        }
+
+        .slider-fill {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            height: 6px;
+            background-color: var(--accent);
+            border-radius: 3px;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        input[type="range"] {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 20px;
+            transform: translateY(-50%);
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background-color: var(--accent);
+            border: 3px solid var(--bg-secondary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 4px var(--accent-muted);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background-color: var(--accent);
+            border: 3px solid var(--bg-secondary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 4px var(--accent-muted);
+        }
+
+        input[type="range"]:focus {
+            outline: none;
+        }
+
+        input[type="range"]:focus::-webkit-slider-thumb {
+            box-shadow: 0 0 0 4px var(--accent-muted);
+        }
+
+        input[type="range"]:focus::-moz-range-thumb {
+            box-shadow: 0 0 0 4px var(--accent-muted);
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -595,14 +719,35 @@
             <input type="text" id="player-name" placeholder="Enter your name..." autocomplete="off">
         </div>
 
-        <div class="form-row">
-            <div class="form-group">
-                <label for="game-duration">Duration (sec)</label>
-                <input type="number" id="game-duration" value="10" min="5" max="300">
+        <div class="slider-group">
+            <div class="slider-header">
+                <label for="game-duration">Game Duration</label>
+                <span class="slider-value" id="duration-value">2:00</span>
             </div>
-            <div class="form-group">
-                <label for="ai-temperature">AI Temp</label>
-                <input type="number" id="ai-temperature" value="1.0" min="0.0" max="2.0" step="0.1">
+            <div class="slider-container">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="duration-fill"></div>
+                <input type="range" id="game-duration" value="120" min="30" max="300" step="10">
+            </div>
+            <div class="slider-labels">
+                <span>30s</span>
+                <span>5min</span>
+            </div>
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <label for="ai-temperature">AI Temperature</label>
+                <span class="slider-value" id="temp-value">1.0</span>
+            </div>
+            <div class="slider-container">
+                <div class="slider-track"></div>
+                <div class="slider-fill" id="temp-fill"></div>
+                <input type="range" id="ai-temperature" value="1.0" min="0" max="2" step="0.1">
+            </div>
+            <div class="slider-labels">
+                <span>Precise</span>
+                <span>Creative</span>
             </div>
         </div>
 
@@ -686,6 +831,41 @@
         
         let ws;
         let timerInterval;
+
+        // Slider setup
+        function setupSlider(inputId, fillId, valueId, formatFn) {
+            const input = document.getElementById(inputId);
+            const fill = document.getElementById(fillId);
+            const valueDisplay = document.getElementById(valueId);
+
+            function update() {
+                const min = parseFloat(input.min);
+                const max = parseFloat(input.max);
+                const val = parseFloat(input.value);
+                const percent = ((val - min) / (max - min)) * 100;
+                fill.style.width = percent + '%';
+                valueDisplay.textContent = formatFn(val);
+            }
+
+            input.addEventListener('input', update);
+            update(); // Initialize
+        }
+
+        // Format duration as mm:ss
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.round(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        // Format temperature
+        function formatTemp(temp) {
+            return temp.toFixed(1);
+        }
+
+        // Initialize sliders
+        setupSlider('game-duration', 'duration-fill', 'duration-value', formatDuration);
+        setupSlider('ai-temperature', 'temp-fill', 'temp-value', formatTemp);
 
         startBtn.addEventListener('click', startGame);
 
