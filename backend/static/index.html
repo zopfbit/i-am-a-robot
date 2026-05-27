@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>I Am A Robot</title>
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2322c55e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='11' width='18' height='10' rx='2'/%3E%3Ccircle cx='12' cy='5' r='2'/%3E%3Cpath d='M12 7v4'/%3E%3Cline x1='8' y1='16' x2='8' y2='16'/%3E%3Cline x1='16' y1='16' x2='16' y2='16'/%3E%3C/svg%3E">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -293,6 +295,31 @@
 
         .btn:active {
             transform: scale(0.98);
+        }
+
+        .header-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+        }
+
+        .header-btn:hover {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            border-color: var(--border-hover);
+        }
+
+        .header-btn svg {
+            width: 18px;
+            height: 18px;
         }
 
         /* Chat Screen */
@@ -737,8 +764,8 @@
                     <line x1="16" y1="16" x2="16" y2="16" />
                 </svg>
             </div>
-            <h1>I Am A Robot</h1>
-            <p class="subtitle">Can you convince the AIs that you are one of them?</p>
+            <h1>Are you an AI?</h1>
+            <p class="subtitle">Prove it!</p>
         </div>
 
         <div class="form-group">
@@ -813,6 +840,13 @@
                 </div>
             </div>
             <div class="chat-header-right">
+                <button id="mute-btn" class="header-btn" title="Mute Sound">
+                    <svg id="mute-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                        <path id="mute-waves" d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    </svg>
+                </button>
                 <div class="timer" id="timer-display">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         stroke-linejoin="round">
@@ -859,6 +893,138 @@
         const startBtn = document.getElementById('start-btn');
         const chatMessages = document.getElementById('chat-messages');
         const typingIndicator = document.getElementById('typing-indicator');
+
+        const SoundManager = {
+            ctx: null,
+            musicInterval: null,
+            isMuted: false,
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            },
+
+            playTone(freq, type, duration, startVol, endVol, delay = 0) {
+                if (this.isMuted || !this.ctx) return;
+
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gainNode = this.ctx.createGain();
+
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+
+                    gainNode.gain.setValueAtTime(startVol, this.ctx.currentTime + delay);
+                    gainNode.gain.exponentialRampToValueAtTime(endVol, this.ctx.currentTime + delay + duration);
+
+                    osc.connect(gainNode);
+                    gainNode.connect(this.ctx.destination);
+
+                    osc.start(this.ctx.currentTime + delay);
+                    osc.stop(this.ctx.currentTime + delay + duration);
+                } catch (e) {
+                    console.warn("Failed to play tone:", e);
+                }
+            },
+
+            playClick() {
+                this.init();
+                this.playTone(800, 'sine', 0.08, 0.15, 0.001);
+            },
+
+            playMessageIncoming() {
+                this.init();
+                this.playTone(523.25, 'sine', 0.1, 0.1, 0.001, 0);
+                this.playTone(659.25, 'sine', 0.15, 0.1, 0.001, 0.08);
+            },
+
+            playMessageOutgoing() {
+                this.init();
+                this.playTone(659.25, 'sine', 0.1, 0.1, 0.001, 0);
+                this.playTone(523.25, 'sine', 0.15, 0.1, 0.001, 0.08);
+            },
+
+            playSystem() {
+                this.init();
+                this.playTone(440, 'triangle', 0.15, 0.15, 0.001, 0);
+                this.playTone(554.37, 'triangle', 0.2, 0.15, 0.001, 0.1);
+            },
+
+            playCritical() {
+                this.init();
+                this.playTone(220, 'sawtooth', 0.15, 0.2, 0.01, 0);
+                this.playTone(220, 'sawtooth', 0.15, 0.2, 0.01, 0.15);
+            },
+
+            playWin() {
+                this.init();
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    this.playTone(freq, 'sine', 0.3, 0.15, 0.001, idx * 0.12);
+                });
+            },
+
+            playLose() {
+                this.init();
+                const notes = [392.00, 349.23, 311.13, 261.63];
+                notes.forEach((freq, idx) => {
+                    this.playTone(freq, 'triangle', 0.4, 0.2, 0.001, idx * 0.15);
+                });
+            },
+
+            startSoundtrack() {
+                this.init();
+                if (this.musicInterval) return;
+
+                let step = 0;
+                const melody = [
+                    110, 110, 130.81, 146.83, 110, 110, 164.81, 146.83,
+                    110, 110, 130.81, 146.83, 98, 98, 123.47, 98
+                ];
+
+                this.musicInterval = setInterval(() => {
+                    if (this.isMuted) return;
+                    try {
+                        const freq = melody[step % melody.length];
+                        this.playTone(freq, 'triangle', 0.5, 0.08, 0.001);
+
+                        if (step % 4 === 0) {
+                            const highFreqs = [440, 523.25, 587.33, 659.25];
+                            const highFreq = highFreqs[Math.floor(Math.random() * highFreqs.length)];
+                            this.playTone(highFreq, 'sine', 1.0, 0.02, 0.001, 0.1);
+                        }
+                        step++;
+                    } catch (e) {
+                        console.warn("Soundtrack error:", e);
+                    }
+                }, 600);
+            },
+
+            stopSoundtrack() {
+                if (this.musicInterval) {
+                    clearInterval(this.musicInterval);
+                    this.musicInterval = null;
+                }
+            }
+        };
+
+        document.getElementById('mute-btn').addEventListener('click', () => {
+            SoundManager.isMuted = !SoundManager.isMuted;
+            const waves = document.getElementById('mute-waves');
+            const muteBtn = document.getElementById('mute-btn');
+            if (SoundManager.isMuted) {
+                waves.style.display = 'none';
+                muteBtn.title = 'Unmute Sound';
+            } else {
+                waves.style.display = 'block';
+                muteBtn.title = 'Mute Sound';
+            }
+            SoundManager.playClick();
+        });
 
         let ws;
         let timerInterval;
@@ -929,6 +1095,10 @@
                 return;
             }
 
+            // Initialize and play audio
+            SoundManager.playClick();
+            SoundManager.startSoundtrack();
+
             // Hide login, show chat
             loginScreen.style.display = 'none';
             chatScreen.style.display = 'flex';
@@ -997,7 +1167,15 @@
                     }
                 }
 
-                if (data.content.includes("You win") || data.content.includes("You lose")) {
+                if (data.content.includes("You win")) {
+                    SoundManager.playWin();
+                    SoundManager.stopSoundtrack();
+                    typingIndicator.style.display = 'none';
+                    if (timerInterval) clearInterval(timerInterval);
+                    document.getElementById('timer-display').style.display = 'none';
+                } else if (data.content.includes("You lose")) {
+                    SoundManager.playLose();
+                    SoundManager.stopSoundtrack();
                     typingIndicator.style.display = 'none';
                     if (timerInterval) clearInterval(timerInterval);
                     document.getElementById('timer-display').style.display = 'none';
@@ -1005,10 +1183,11 @@
             };
 
             ws.onclose = () => {
-                addMessage('system', 'Connection to server lost. Game over.');
+                addMessage('system', 'Game over.');
                 typingIndicator.style.display = 'none';
                 if (timerInterval) clearInterval(timerInterval);
                 document.getElementById('timer-display').style.display = 'none';
+                SoundManager.stopSoundtrack();
             };
         }
 
@@ -1047,6 +1226,12 @@
             const div = document.createElement('div');
             div.className = `message ${type}`;
 
+            if (type === 'system') {
+                SoundManager.playSystem();
+            } else if (type === 'critical') {
+                SoundManager.playCritical();
+            }
+
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
             bubble.innerHTML = content.replace(/\n/g, '<br>');
@@ -1074,6 +1259,12 @@
             const div = document.createElement('div');
             const playerName = document.getElementById('player-name').value.trim();
             const isOutgoing = sender.toLowerCase() === playerName.toLowerCase();
+
+            if (isOutgoing) {
+                SoundManager.playMessageOutgoing();
+            } else {
+                SoundManager.playMessageIncoming();
+            }
 
             div.className = `message ${isOutgoing ? 'outgoing' : 'incoming'}`;
 
@@ -1113,6 +1304,7 @@
             const text = chatInput.value.trim();
             if (!text) return;
 
+            SoundManager.playClick();
             ws.send(JSON.stringify({ type: 'chat', content: text }));
             chatInput.value = '';
         }
