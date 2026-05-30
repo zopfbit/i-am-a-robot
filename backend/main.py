@@ -12,19 +12,43 @@ PLAYER_NUM = 5
 from agents import Model, Message, Player, Moderator
 
 
+from dataclasses import dataclass, asdict
+
+@dataclass
+class GameConfig:
+    duration: int = 10
+    temperature: float = 1.0
+    speed: str = "medium"
+    api_key: str = None
+    use_imperfection: bool = True
+    use_few_shot: bool = True
+    use_word_limit: bool = True
+
+    @classmethod
+    def from_dict(cls, d: dict):
+        fields = cls.__dataclass_fields__.keys()
+        return cls(**{k: v for k, v in d.items() if k in fields})
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
 class Game:
-    def __init__(self, player_tag: str = None, output_callback=None, duration: int = 10, temperature: float = 1.0, speed: str = "medium", api_key: str = None):
+    def __init__(self, player_tag: str = None, output_callback=None, config: GameConfig = None):
         if player_tag is None:
             self.player_tag = input("Your Game name!")
         else:
             self.player_tag = player_tag
         self.output_callback = output_callback
-        self.duration = duration
-        self.temperature = temperature
-        self.speed = speed
-        self.api_key = api_key
+        
+        self.config = config or GameConfig()
+        self.duration = self.config.duration
+        self.temperature = self.config.temperature
+        self.speed = self.config.speed
+        self.api_key = self.config.api_key
+        
         self.chat = []
-        self.prompt_gen = PromptGenerator(self.player_tag)
+        self.prompt_gen = PromptGenerator(self.player_tag, use_imperfection=self.config.use_imperfection, use_few_shot=self.config.use_few_shot, use_word_limit=self.config.use_word_limit)
         roles = self.prompt_gen.artifical_names
         # AGENT_RULE: DO NOT TOUCH THE MODEL LIST BELOW
         available_models = [Model.OPENAI_GPT_OSS_120B]

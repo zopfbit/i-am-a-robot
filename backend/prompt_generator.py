@@ -17,11 +17,15 @@ class PromptGenerator:
     def __init__(
         self,
         player_name: str = "iamahuman",
-        player_roles: list[str] = ["bob", "charlie", "david", "eve"],
+        player_roles: list[str] = ["bob", "alice", "david", "eve"],
+        use_imperfection: bool = True,
+        use_few_shot: bool = True,
+        use_word_limit: bool = True,
     ):
         self.player_name = player_name
         self.artifical_names = player_roles
         self.player_names = player_roles + [player_name]
+        self.use_word_limit = use_word_limit
         self.prompts = {}
         self.personalities = {}
 
@@ -42,13 +46,6 @@ class PromptGenerator:
         except Exception:
             groups = []
 
-        if len(groups) < 3:
-            groups = [
-                ["Grumpy", "Overly enthusiastic", "Paranoid", "Laid-back", "Nervous", "Intellectual"],
-                ["Sarcastic", "Cheerful", "Quiet and brief", "Dramatic", "Excessively formal", "Frequently using modern slang"],
-                ["Always annoyed by everyone", "A bit naive", "Constantly doubting others", "Easily distracted", "Trying extremely hard to fit in", "Obsessed with making logical arguments"]
-            ]
-
         for role in self.artifical_names:
             selected_traits = []
             if len(groups) > 0:
@@ -63,18 +60,42 @@ class PromptGenerator:
                 n3 = random.randint(0, 2)
                 selected_traits.extend(random.sample(g3, min(len(g3), n3)))
 
-            
+
             formatted_traits = []
             for idx, trait in enumerate(selected_traits):
                 t = trait.strip()
                 if idx > 0 and t and t[0].isupper() and not (len(t) > 1 and t[1].isupper()):
                     t = t[0].lower() + t[1:]
                 formatted_traits.append(t)
-            
+
             if formatted_traits:
-                self.personalities[role] = f"Your personality is: {', '.join(formatted_traits)}."
+                personality_str = f"Your personality is: {', '.join(formatted_traits)}."
             else:
-                self.personalities[role] = "Your personality is: A normal, everyday person."
+                personality_str = "Your personality is: A normal, everyday person."
+
+            # Group 4: Speech Imperfections
+            imperfection_str = ""
+            if use_imperfection and len(groups) > 3:
+                g4 = groups[3]
+                selected_imperfections = random.sample(g4, min(len(g4), 1))
+                if selected_imperfections:
+                    imp_text = selected_imperfections[0].strip()
+                    if imp_text:
+                        imp_text = imp_text[0].upper() + imp_text[1:]
+                    imperfection_str = f" {imp_text}."
+
+            # Group 5: Few-Shot conditioning examples
+            few_shot_str = ""
+            if use_few_shot and len(groups) > 4:
+                g5 = groups[4]
+                num_examples = random.randint(3, min(len(g5), 5))
+                selected_examples = random.sample(g5, num_examples)
+                if selected_examples:
+                    few_shot_str = "\nUse the following examples of target human-like dialogue style to establish your baseline style:\n"
+                    for ex in selected_examples:
+                        few_shot_str += f"- {ex}\n"
+
+            self.personalities[role] = personality_str + imperfection_str + few_shot_str
 
 
     def get_init_prompt(self) -> str:
@@ -88,10 +109,10 @@ class PromptGenerator:
         return self.player_names
 
     def get_player_system_prompt(self, player_name: str) -> str:
-        prompt = f"You are role playing as {player_name}. You always have to answer in english. You have to act as a human. So think like one. Do not act like an AI. No emojis!"
+        prompt = f"You are role playing as {player_name}. You always have to answer in english. You have to act as a human. So think like one. Do not act like an AI. No emojis! No asteriks!"
         if player_name in self.personalities:
             prompt += f" {self.personalities[player_name]}"
-            
+
         print(f"\n[SYSTEM PROMPT - {player_name}]\n{prompt}\n")
         return prompt
 
@@ -104,7 +125,7 @@ class PromptGenerator:
             case ActionType.ASK_QUESTION:
                 prompt = f"Ask a question!"
             case ActionType.ANSWER_AND_ASK:
-                prompt = f"talk freely and naturally, while interacting with the other players"
+                prompt = f"talk freely and naturally, while interacting with the other players."
             case ActionType.ANSWER_ONLY:
                 prompt = f"Answer a question."
             case ActionType.VOTE:
@@ -118,9 +139,15 @@ class PromptGenerator:
                 prompt = ""
 
         if prompt:
-            n = random.randint(1, 5)
-            sentence_word = "sentence" if n == 1 else "sentences"
-            prompt += f" Keep your response relatively brief (e.g. {n} {sentence_word})."
+            if self.use_word_limit:
+                word_limits = [5, 10, 15, 20, 25, 30, 100]
+                weights = [1.0, 0.5, 0.25, 0.125, 0.0625, 0.03, 0.00125]
+                limit = random.choices(word_limits, weights=weights, k=1)[0]
+                prompt += f" Answer in under {limit} words."
+            else:
+                n = random.randint(1, 5)
+                sentence_word = "sentence" if n == 1 else "sentences"
+                prompt += f" Answer in under {n} {sentence_word}."
         return prompt
 
 
@@ -138,7 +165,7 @@ class PromptGenerator:
 
         action = self.get_player_action_prompt(name, action_type)
         final_prompt = f"{context_dialogue}\n\n{action}" if len(message_history) > 0 else action
-        
+
         print(f"\n[PROMPT CONTENT - {name} (Action: {action_type.name})]\n{final_prompt}\n")
         return final_prompt
 
