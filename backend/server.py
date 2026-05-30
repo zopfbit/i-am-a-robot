@@ -2,7 +2,7 @@ import asyncio
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from main import Game
+from main import Game, GameConfig
 import os
 
 app = FastAPI()
@@ -19,7 +19,8 @@ async def get_index():
     return FileResponse(os.path.join(static_dir, "index.html"))
 
 @app.websocket("/ws/{player_name}")
-async def websocket_endpoint(websocket: WebSocket, player_name: str, duration: int = 10, temperature: float = 1.0, speed: str = "medium", api_key: str = None):
+async def websocket_endpoint(websocket: WebSocket, player_name: str, duration: int = 10, temperature: float = 1.0, speed: str = "medium", api_key: str = None, use_imperfection: bool = True, use_word_limit: bool = True, use_hidden_motives: bool = True, use_backgrounds: bool = True):
+    print(f"[DEBUG server.py] WebSocket connected for {player_name}. Query params -> use_word_limit: {use_word_limit}, use_imperfection: {use_imperfection}, use_hidden_motives: {use_hidden_motives}, use_backgrounds: {use_backgrounds}")
     await websocket.accept()
     
     # We use an asyncio Queue to safely pass messages from the Game's sync/async code to the websocket
@@ -29,7 +30,17 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str, duration: i
         # We can put items in the queue without needing await if we use put_nowait
         message_queue.put_nowait({"type": msg_type, "content": content, "meta": meta or {}})
 
-    game = Game(player_tag=player_name, output_callback=output_callback, duration=duration, temperature=temperature, speed=speed, api_key=api_key)
+    config = GameConfig(
+        duration=duration,
+        temperature=temperature,
+        speed=speed,
+        api_key=api_key,
+        use_imperfection=use_imperfection,
+        use_word_limit=use_word_limit,
+        use_hidden_motives=use_hidden_motives,
+        use_backgrounds=use_backgrounds
+    )
+    game = Game(player_tag=player_name, output_callback=output_callback, config=config)
     
     # Background task to drain the queue and send via websocket
     async def send_messages():

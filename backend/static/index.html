@@ -297,6 +297,204 @@
             transform: scale(0.98);
         }
 
+        /* Switch styling */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 0px;
+            width: 100%;
+        }
+
+        .switch-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .switch input[type="checkbox"] {
+            opacity: 0 !important;
+            width: 0 !important;
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            position: absolute !important;
+            pointer-events: none;
+        }
+
+        .slider-switch {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            transition: .3s;
+            border-radius: 24px;
+        }
+
+        .slider-switch:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text-secondary);
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        .switch input:checked+.slider-switch {
+            background-color: var(--accent-muted);
+            border-color: var(--accent);
+        }
+
+        .switch input:checked+.slider-switch:before {
+            transform: translateX(20px);
+            background-color: var(--accent);
+        }
+
+        /* Secondary Button styling */
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 0.75rem 1.5rem;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            font-family: inherit;
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--bg-secondary);
+            border-color: var(--border-hover);
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.98);
+        }
+
+        /* Modal Overlay Styling */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(9, 9, 11, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            width: 100%;
+            max-width: 480px;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1rem;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: color 0.2s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: var(--text-primary);
+            background-color: var(--bg-tertiary);
+        }
+
+        .close-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .modal-body {
+            max-height: 60vh;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+            padding-right: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background-color: var(--border);
+            border-radius: 2px;
+        }
+
 
 
         /* Chat Screen */
@@ -747,55 +945,19 @@
 
         <div class="form-group">
             <label for="player-name">Your Name</label>
-            <input type="text" id="player-name" placeholder="Enter your name..." autocomplete="off">
+            <input type="text" id="player-name" placeholder="Enter your name..." value="alex" autocomplete="off">
         </div>
 
-        <div class="slider-group">
-            <div class="slider-header">
-                <label for="game-duration">Game Duration</label>
-                <span class="slider-value" id="duration-value">2:00</span>
-            </div>
-            <div class="slider-container">
-                <div class="slider-track"></div>
-                <div class="slider-fill" id="duration-fill"></div>
-                <input type="range" id="game-duration" value="120" min="30" max="300" step="10">
-            </div>
-            <div class="slider-labels">
-                <span>30s</span>
-                <span>5min</span>
-            </div>
-        </div>
-
-        <div class="slider-group">
-            <div class="slider-header">
-                <label for="ai-temperature">AI Temperature</label>
-                <span class="slider-value" id="temp-value">1.0</span>
-            </div>
-            <div class="slider-container">
-                <div class="slider-track"></div>
-                <div class="slider-fill" id="temp-fill"></div>
-                <input type="range" id="ai-temperature" value="1.0" min="0" max="2" step="0.1">
-            </div>
-            <div class="slider-labels">
-                <span>Precise</span>
-                <span>Creative</span>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label for="chat-speed">Chat Speed</label>
-            <select id="chat-speed">
-                <option value="super_slow">Super Slow (90-160s delay)</option>
-                <option value="slow">Slow (50-90s delay)</option>
-                <option value="medium" selected>Medium (25-50s delay)</option>
-                <option value="fast">Fast (12-25s delay)</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label for="api-key">API Key (Optional)</label>
-            <input type="password" id="api-key" placeholder="Enter OpenRouter or Gemini key..." autocomplete="off">
-        </div>
+        <button class="btn-secondary" id="open-settings-btn" style="margin-bottom: 1.25rem;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path
+                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z">
+                </path>
+            </svg>
+            Game Settings
+        </button>
 
         <button class="btn" id="start-btn">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -804,6 +966,106 @@
             </svg>
             Join Game
         </button>
+    </div>
+
+    <!-- Settings Overlay Modal -->
+    <div id="settings-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Game Settings</h2>
+                <button class="close-btn" id="close-settings-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="modal-body">
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label for="game-duration">Game Duration</label>
+                        <span class="slider-value" id="duration-value">2:00</span>
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-track"></div>
+                        <div class="slider-fill" id="duration-fill"></div>
+                        <input type="range" id="game-duration" value="120" min="30" max="300" step="10">
+                    </div>
+                    <div class="slider-labels">
+                        <span>30s</span>
+                        <span>5min</span>
+                    </div>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <label for="ai-temperature">AI Temperature</label>
+                        <span class="slider-value" id="temp-value">1.0</span>
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-track"></div>
+                        <div class="slider-fill" id="temp-fill"></div>
+                        <input type="range" id="ai-temperature" value="1.0" min="0" max="2" step="0.1">
+                    </div>
+                    <div class="slider-labels">
+                        <span>Precise</span>
+                        <span>Creative</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="chat-speed">Chat Speed</label>
+                    <select id="chat-speed">
+                        <option value="super_slow">Super Slow (90-160s delay)</option>
+                        <option value="slow">Slow (50-90s delay)</option>
+                        <option value="medium" selected>Medium (25-50s delay)</option>
+                        <option value="fast">Fast (12-25s delay)</option>
+                    </select>
+                </div>
+
+                <div class="form-row" style="grid-template-columns: 1fr; gap: 0.75rem;">
+                    <label>Optionals</label>
+                    <div class="switch-container">
+                        <span class="switch-label">Word Limit</span>
+                        <label class="switch">
+                            <input type="checkbox" id="use-word-limit" checked>
+                            <span class="slider-switch"></span>
+                        </label>
+                    </div>
+                    <div class="switch-container">
+                        <span class="switch-label">Imperfections</span>
+                        <label class="switch">
+                            <input type="checkbox" id="use-imperfection" checked>
+                            <span class="slider-switch"></span>
+                        </label>
+                    </div>
+                    <div class="switch-container">
+                        <span class="switch-label">set Motives</span>
+                        <label class="switch">
+                            <input type="checkbox" id="use-hidden-motives" checked>
+                            <span class="slider-switch"></span>
+                        </label>
+                    </div>
+                    <div class="switch-container">
+                        <span class="switch-label">set Backgrounds</span>
+                        <label class="switch">
+                            <input type="checkbox" id="use-backgrounds" checked>
+                            <span class="slider-switch"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="api-key">API Key</label>
+                    <input type="password" id="api-key" placeholder="Enter OpenRouter or Gemini key..."
+                        autocomplete="off">
+                </div>
+            </div>
+
+            <button class="btn" id="save-settings-btn">Save Settings</button>
+        </div>
     </div>
 
     <!-- Chat Screen -->
@@ -869,6 +1131,33 @@
         const chatMessages = document.getElementById('chat-messages');
         const typingIndicator = document.getElementById('typing-indicator');
 
+        const settingsModal = document.getElementById('settings-modal');
+        const openSettingsBtn = document.getElementById('open-settings-btn');
+        const closeSettingsBtn = document.getElementById('close-settings-btn');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+
+        // Open modal
+        openSettingsBtn.addEventListener('click', () => {
+            settingsModal.classList.add('show');
+        });
+
+        // Close modal (Close button)
+        closeSettingsBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('show');
+        });
+
+        // Close modal (Save button)
+        saveSettingsBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('show');
+        });
+
+        // Close modal (Backdrop click)
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.classList.remove('show');
+            }
+        });
+
 
 
         let ws;
@@ -929,23 +1218,19 @@
             const tempInput = document.getElementById('ai-temperature');
             const speedInput = document.getElementById('chat-speed');
             const apiKeyInput = document.getElementById('api-key');
+            const imperfectionInput = document.getElementById('use-imperfection');
+            const wordLimitInput = document.getElementById('use-word-limit');
+            const hiddenMotivesInput = document.getElementById('use-hidden-motives');
+            const backgroundsInput = document.getElementById('use-backgrounds');
 
-            const playerName = nameInput.value.trim();
+            let playerName = nameInput.value.trim();
+            if (!playerName) {
+                playerName = "alex";
+            }
             const duration = parseInt(durationInput.value) || 10;
             const temperature = parseFloat(tempInput.value) || 1.0;
             const speed = speedInput.value;
             const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
-
-            if (!playerName) {
-                nameInput.focus();
-                nameInput.style.borderColor = 'var(--danger)';
-                nameInput.style.boxShadow = '0 0 0 3px var(--danger-muted)';
-                setTimeout(() => {
-                    nameInput.style.borderColor = '';
-                    nameInput.style.boxShadow = '';
-                }, 2000);
-                return;
-            }
 
 
 
@@ -954,9 +1239,14 @@
             chatScreen.style.display = 'flex';
             document.getElementById('player-display').textContent = playerName;
 
+            const useImperfection = imperfectionInput ? imperfectionInput.checked : true;
+            const useWordLimit = wordLimitInput ? wordLimitInput.checked : true;
+            const useHiddenMotives = hiddenMotivesInput ? hiddenMotivesInput.checked : true;
+            const useBackgrounds = backgroundsInput ? backgroundsInput.checked : true;
+
             // Connect WebSocket with query parameters
             const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-            let wsUrl = `${protocol}//${window.location.host}/ws/${encodeURIComponent(playerName)}?duration=${duration}&temperature=${temperature}&speed=${speed}`;
+            let wsUrl = `${protocol}//${window.location.host}/ws/${encodeURIComponent(playerName)}?duration=${duration}&temperature=${temperature}&speed=${speed}&use_imperfection=${useImperfection}&use_word_limit=${useWordLimit}&use_hidden_motives=${useHiddenMotives}&use_backgrounds=${useBackgrounds}`;
             if (apiKey) {
                 wsUrl += `&api_key=${encodeURIComponent(apiKey)}`;
             }

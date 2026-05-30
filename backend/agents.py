@@ -128,6 +128,7 @@ class Agent(ABC):
             )
             duration = time.time() - start_time
             content = response.choices[0].message.content
+
             with open("response_times.txt", "a") as f:
                 f.write(
                     f"Agent: {self.name}, Model: {self.model.name}, Time: {duration:.2f}s\n"
