@@ -19,7 +19,8 @@ async def get_index():
     return FileResponse(os.path.join(static_dir, "index.html"))
 
 @app.websocket("/ws/{player_name}")
-async def websocket_endpoint(websocket: WebSocket, player_name: str, duration: int = 10, temperature: float = 1.0, speed: str = "medium", api_key: str = None, use_imperfection: bool = True, use_few_shot: bool = True, use_word_limit: bool = True):
+async def websocket_endpoint(websocket: WebSocket, player_name: str, duration: int = 10, temperature: float = 1.0, speed: str = "medium", api_key: str = None, use_imperfection: bool = True, use_word_limit: bool = True, use_hidden_motives: bool = True, use_backgrounds: bool = True):
+    print(f"[DEBUG server.py] WebSocket connected for {player_name}. Query params -> use_word_limit: {use_word_limit}, use_imperfection: {use_imperfection}, use_hidden_motives: {use_hidden_motives}, use_backgrounds: {use_backgrounds}")
     await websocket.accept()
     
     # We use an asyncio Queue to safely pass messages from the Game's sync/async code to the websocket
@@ -35,8 +36,9 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str, duration: i
         speed=speed,
         api_key=api_key,
         use_imperfection=use_imperfection,
-        use_few_shot=use_few_shot,
-        use_word_limit=use_word_limit
+        use_word_limit=use_word_limit,
+        use_hidden_motives=use_hidden_motives,
+        use_backgrounds=use_backgrounds
     )
     game = Game(player_tag=player_name, output_callback=output_callback, config=config)
     
