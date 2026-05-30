@@ -1026,8 +1026,9 @@
                 </div>
 
                 <div class="form-row" style="grid-template-columns: 1fr; gap: 0.75rem;">
+                    <label>Optionals</label>
                     <div class="switch-container">
-                        <span class="switch-label">Word Limit (instead of sentences)</span>
+                        <span class="switch-label">Word Limit</span>
                         <label class="switch">
                             <input type="checkbox" id="use-word-limit" checked>
                             <span class="slider-switch"></span>
@@ -1041,16 +1042,23 @@
                         </label>
                     </div>
                     <div class="switch-container">
-                        <span class="switch-label">Few-Shot Examples</span>
+                        <span class="switch-label">set Motives</span>
                         <label class="switch">
-                            <input type="checkbox" id="use-few-shot" checked>
+                            <input type="checkbox" id="use-hidden-motives" checked>
+                            <span class="slider-switch"></span>
+                        </label>
+                    </div>
+                    <div class="switch-container">
+                        <span class="switch-label">set Backgrounds</span>
+                        <label class="switch">
+                            <input type="checkbox" id="use-backgrounds" checked>
                             <span class="slider-switch"></span>
                         </label>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="api-key">API Key (Optional)</label>
+                    <label for="api-key">API Key</label>
                     <input type="password" id="api-key" placeholder="Enter OpenRouter or Gemini key..."
                         autocomplete="off">
                 </div>
@@ -1211,8 +1219,9 @@
             const speedInput = document.getElementById('chat-speed');
             const apiKeyInput = document.getElementById('api-key');
             const imperfectionInput = document.getElementById('use-imperfection');
-            const fewShotInput = document.getElementById('use-few-shot');
             const wordLimitInput = document.getElementById('use-word-limit');
+            const hiddenMotivesInput = document.getElementById('use-hidden-motives');
+            const backgroundsInput = document.getElementById('use-backgrounds');
 
             let playerName = nameInput.value.trim();
             if (!playerName) {
@@ -1231,12 +1240,13 @@
             document.getElementById('player-display').textContent = playerName;
 
             const useImperfection = imperfectionInput ? imperfectionInput.checked : true;
-            const useFewShot = fewShotInput ? fewShotInput.checked : true;
             const useWordLimit = wordLimitInput ? wordLimitInput.checked : true;
+            const useHiddenMotives = hiddenMotivesInput ? hiddenMotivesInput.checked : true;
+            const useBackgrounds = backgroundsInput ? backgroundsInput.checked : true;
 
             // Connect WebSocket with query parameters
             const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-            let wsUrl = `${protocol}//${window.location.host}/ws/${encodeURIComponent(playerName)}?duration=${duration}&temperature=${temperature}&speed=${speed}&use_imperfection=${useImperfection}&use_few_shot=${useFewShot}&use_word_limit=${useWordLimit}`;
+            let wsUrl = `${protocol}//${window.location.host}/ws/${encodeURIComponent(playerName)}?duration=${duration}&temperature=${temperature}&speed=${speed}&use_imperfection=${useImperfection}&use_word_limit=${useWordLimit}&use_hidden_motives=${useHiddenMotives}&use_backgrounds=${useBackgrounds}`;
             if (apiKey) {
                 wsUrl += `&api_key=${encodeURIComponent(apiKey)}`;
             }
