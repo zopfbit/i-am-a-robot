@@ -3,7 +3,7 @@ import time
 import asyncio
 import random
 from dotenv import load_dotenv
-from prompt_generator import PromptGenerator
+from prompt_generator import PromptGenerator, ActionType
 
 load_dotenv()
 
@@ -24,6 +24,8 @@ class GameConfig:
     use_word_limit: bool = True
     use_hidden_motives: bool = True
     use_backgrounds: bool = True
+    use_profiles: bool = False
+    active_profiles: list[str] = None
 
 class Game:
     def __init__(self, player_tag: str = None, output_callback=None, config: GameConfig = None):
@@ -45,7 +47,9 @@ class Game:
             use_imperfection=self.config.use_imperfection,
             use_word_limit=self.config.use_word_limit,
             use_hidden_motives=self.config.use_hidden_motives,
-            use_backgrounds=self.config.use_backgrounds
+            use_backgrounds=self.config.use_backgrounds,
+            use_profiles=self.config.use_profiles,
+            active_profiles=self.config.active_profiles
         )
         roles = self.prompt_gen.artifical_names
         # AGENT_RULE: DO NOT TOUCH THE MODEL LIST BELOW
@@ -163,24 +167,30 @@ class Game:
                 break
 
             chat_len_at_start = len(self.chat)
-            speaker_names, meta = await self.moderator.decide_next_speakers_async(
-                list(self.chat), self.artifical_players
+            speaker_name, action_type, meta = await self.moderator.decide_next_speakers_async(
+                list(self.chat), self.artifical_players, self.prompt_gen
             )
             ai_names = {p.name.lower() for p in self.artifical_players}
             ai_names.add("moderator")
             if any(m.sender.lower() not in ai_names for m in self.chat[chat_len_at_start:]):
                 continue
 
-            self.emit("system", f"Moderator selected next speakers: {', '.join(speaker_names)}", meta=meta)
-            speakers = [name_to_player[n] for n in speaker_names if n in name_to_player]
-            if not speakers:
+            if not speaker_name:
+                self.emit("system", "Moderator failed to select a valid speaker.", meta=meta)
                 continue
 
-            # Select only the first speaker to avoid multiple AIs speaking at once
-            speaker = speakers[0]
+            if speaker_name not in name_to_player:
+                self.emit("system", f"Moderator selected unknown speaker: {speaker_name}", meta=meta)
+                continue
+
+            speaker = name_to_player[speaker_name]
+            if action_type is None:
+                action_type = ActionType.INTERACT
+
+            self.emit("system", f"Moderator selected speaker: {speaker.name} with action: {action_type.name}", meta=meta)
 
             chat_len_before_respond = len(self.chat)
-            msg = await speaker.respond_async(list(self.chat), self.prompt_gen)
+            msg = await speaker.respond_async(list(self.chat), self.prompt_gen, action_type=action_type)
 
             user_has_sent_msg = any(
                 m.sender.lower() not in ai_names
@@ -198,8 +208,8 @@ class Game:
         # INIT
         self.emit("system", self.prompt_gen.get_init_prompt())
 
-        await self.chat_random()
-        # await self.chat_moderated()
+        # await self.chat_random()
+        await self.chat_moderated()
 
         # reveal the game
         max_ids = await self.get_most_voted_player_id()

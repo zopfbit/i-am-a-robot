@@ -1,16 +1,20 @@
 import os
 import random
+import glob
+import yaml
 from enum import Enum
 
 
 class ActionType(Enum):
     ASK_QUESTION = 0
-    ANSWER_AND_ASK = 1
+    INTERACT = 1
     ANSWER_ONLY = 2
     VOTE = 3
     IGNORE_QUESTION = 4
     CHANGE_TOPIC = 5
-    CAVEMAN_ANSWER = 6
+    Joke = 6
+    Compliment = 7
+    Attack = 8
 
 
 class PromptGenerator:
@@ -22,6 +26,8 @@ class PromptGenerator:
         use_word_limit: bool = True,
         use_hidden_motives: bool = True,
         use_backgrounds: bool = True,
+        use_profiles: bool = False,
+        active_profiles: list[str] = None,
     ):
         self.player_name = player_name
         self.artifical_names = player_roles
@@ -29,6 +35,39 @@ class PromptGenerator:
         self.use_word_limit = use_word_limit
         self.prompts = {}
         self.personalities = {}
+
+        if use_profiles:
+            profiles_dir = os.path.join(os.path.dirname(__file__), "profiles")
+            available_files = glob.glob(os.path.join(profiles_dir, "*.persona"))
+            loaded_profiles = []
+            for filepath in available_files:
+                profile_id = os.path.splitext(os.path.basename(filepath))[0]
+                if not active_profiles or profile_id in active_profiles:
+                    try:
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            data = yaml.safe_load(f)
+                            if data:
+                                loaded_profiles.append(data)
+                    except Exception as e:
+                        print(f"Error loading profile {filepath}: {e}")
+
+            if loaded_profiles:
+                for role in self.artifical_names:
+                    profile = random.choice(loaded_profiles)
+                    prompt_parts = []
+                    if profile.get('role'):
+                        prompt_parts.append(f"Your role is: {profile.get('role')}.")
+                    if profile.get('description'):
+                        prompt_parts.append(f"Description: {profile.get('description')}.")
+                    if profile.get('speech_mannerisms'):
+                        prompt_parts.append(f"Speech mannerisms: {profile.get('speech_mannerisms')}.")
+                    quotes = profile.get('quotes')
+                    if quotes:
+                        prompt_parts.append("For style, tone, and speech pattern inspiration, emulate these quotes:")
+                        for q in quotes:
+                            prompt_parts.append(f'- "{q}"')
+                    self.personalities[role] = "\n".join(prompt_parts)
+                return
 
         file_path = os.path.join(os.path.dirname(__file__), "personalities.txt")
         groups = []
@@ -126,21 +165,23 @@ class PromptGenerator:
         self, player_name: str, action_type: ActionType
     ) -> str:
         # maybe we roll randomly which action_type is chosen?
+        other_players = [p for p in self.player_names if p != player_name]
         prompt = ""
         match action_type:
             case ActionType.ASK_QUESTION:
-                prompt = f"Ask a question!"
-            case ActionType.ANSWER_AND_ASK:
-                prompt = f"talk freely and naturally, while interacting with the other players."
+                prompt = f"Ask a question to someone from {other_players}!"
+            case ActionType.INTERACT:
+                prompt = f"Talk freely and naturally, while interacting with the other players."
             case ActionType.ANSWER_ONLY:
-                prompt = f"Answer a question."
+                prompt = f"Answer the question that is given you. See the dialog"
             case ActionType.VOTE:
-                other_players = [p for p in self.player_names if p != player_name]
                 return f"Remember: Everyone in this chatroom is an AI, except for exactly one human pretending to be an AI whom you are trying to find! You have to find that human among the names {self.player_names}. Go over the dialog again. Silence is an AI avoiding technique from humans. For each other player in {other_players}, write a quick one-sentence evaluation of why they might be the human (pretending to be an AI) or why they are likely a fellow AI player. Do NOT write any evaluation, reasoning, or analysis about yourself ({player_name}), as you already know you are an AI. Only evaluate the other players. Then, reason about who is the most suspicious. Remember that you are {player_name} and you must NOT vote for yourself. Come to a conclusion on who to vote for, and then end your message with ##NAME##, replacing NAME with the name of the player you voted for."
-            case ActionType.IGNORE_QUESTION:
-                prompt = f"Talk freely and naturally"
-            case ActionType.CHANGE_TOPIC:
-                prompt = f"Talk freely and naturally"
+            case ActionType.Joke:
+                prompt = f"Tell a joke to someone in {other_players}!"
+            case ActionType.Compliment:
+                prompt = f"Compliment someone in {other_players}!"
+            case ActionType.Attack:
+                prompt = f"Diss some person from {other_players}!"
             case _:
                 prompt = ""
 
