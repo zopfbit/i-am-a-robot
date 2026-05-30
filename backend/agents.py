@@ -43,7 +43,7 @@ class Agent(ABC):
         self.name = name
         self.model = model
         self.temperature = temperature
-        
+
         self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY") or os.environ.get("GOOGLE_STUDIO_KEY")
         if self.api_key and self.api_key.startswith("AIzaSy"):
             self.base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
@@ -64,7 +64,7 @@ class Agent(ABC):
         self,
         message_history: list["Message"],
         prompt_gen: PromptGenerator,
-        action_type: ActionType = ActionType.ANSWER_AND_ASK,
+        action_type: ActionType = ActionType.INTERACT,
     ) -> "Message":
         client = OpenAI(
             base_url=self.base_url,
@@ -88,7 +88,8 @@ class Agent(ABC):
                 temperature=self.temperature,
             )
             duration = time.time() - start_time
-            content = response.choices[0].message.content
+            content = response.choices[0].message.content or ""
+            content = content.replace("<|endoftext|>", "").strip()
 
             # Log the response time
             with open("response_times.txt", "a") as f:
@@ -108,7 +109,7 @@ class Agent(ABC):
         self,
         message_history: list["Message"],
         prompt_gen: PromptGenerator,
-        action_type: ActionType = ActionType.ANSWER_AND_ASK,
+        action_type: ActionType = ActionType.INTERACT,
     ) -> "Message":
         client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
         system_content = self.get_system_content(prompt_gen)
@@ -127,7 +128,8 @@ class Agent(ABC):
                 temperature=self.temperature,
             )
             duration = time.time() - start_time
-            content = response.choices[0].message.content
+            content = response.choices[0].message.content or ""
+            content = content.replace("<|endoftext|>", "").strip()
 
             with open("response_times.txt", "a") as f:
                 f.write(
@@ -135,7 +137,7 @@ class Agent(ABC):
                 )
         except Exception as e:
             content = f"Error generating response: {str(e)}"
-            
+
         msg_obj = Message(self.name, content)
         msg_obj.system_prompt = system_content
         msg_obj.user_prompt = prompt
@@ -192,25 +194,43 @@ class Moderator(Agent):
         return prompt_gen.generate_moderator_system_content()
 
     def _build_speaker_prompt(
-        self, message_history: list["Message"], players: list["Player"]
+        self, message_history: list["Message"], players: list["Player"], prompt_gen: PromptGenerator
     ) -> tuple[str, str]:
         """Build system + user prompts for speaker selection."""
         player_list = ", ".join(p.name for p in players)
+        action_list = ", ".join(action.name for action in ActionType)
         chat_log = "\n".join(
             f"{msg.sender}: {msg.content}" for msg in message_history
         ) or "(no messages yet)"
-        system = self.get_system_content(None) or "You are the Moderator."
+        system = self.get_system_content(prompt_gen) or "You are the Moderator."
+        system += (
+            "\nYour job is to select the next player to speak and the specific action type they should perform. "
+            "You MUST select exactly one player and one action type. "
+            "Available action types:\n"
+            "- ASK_QUESTION: Ask a question to another player.\n"
+            "- INTERACT: Talk freely and naturally.\n"
+            "- ANSWER_ONLY: Answer a question previously asked.\n"
+            "- IGNORE_QUESTION: Ignore any question and talk about something else.\n"
+            "- CHANGE_TOPIC: Change the topic of conversation.\n"
+            "- CAVEMAN_ANSWER: Answer in a simple, primitive caveman style.\n"
+            "- Joke: Tell a joke.\n"
+            "- Compliment: Compliment another player.\n"
+            "- Attack: Diss/critique/attack another player.\n"
+            "\nYou must respond in the following format:\n"
+            "PlayerName: ActionType\n"
+            "Example: bob: ASK_QUESTION"
+        )
         user = (
             f"Conversation so far:\n{chat_log}\n\n"
-            f"Which players should speak next? Choose 1-2 from: [{player_list}]. "
-            f"Respond with ONLY the names, comma-separated."
+            f"Select the next player from [{player_list}] and their action from [{action_list}].\n"
+            f"Format: PlayerName: ActionType"
         )
         return system, user
 
     def decide_next_speakers(
-        self, message_history: list["Message"], players: list["Player"]
-    ) -> tuple[list[str], dict]:
-        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players)
+        self, message_history: list["Message"], players: list["Player"], prompt_gen: PromptGenerator
+    ) -> tuple[str | None, ActionType | None, dict]:
+        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players, prompt_gen)
         client = OpenAI(base_url=self.base_url, api_key=self.api_key)
         response = client.chat.completions.create(
             model=self.model_override or self.model.value,
@@ -218,12 +238,14 @@ class Moderator(Agent):
             temperature=self.temperature,
         )
         meta = {"system_prompt": system_prompt, "user_prompt": user_prompt}
-        return parse_names(response.choices[0].message.content, player_names=[p.name for p in players]), meta
+        raw_text = response.choices[0].message.content or ""
+        player_name, action_type = parse_moderator_decision(raw_text, players)
+        return player_name, action_type, meta
 
     async def decide_next_speakers_async(
-        self, message_history: list["Message"], players: list["Player"]
-    ) -> tuple[list[str], dict]:
-        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players)
+        self, message_history: list["Message"], players: list["Player"], prompt_gen: PromptGenerator
+    ) -> tuple[str | None, ActionType | None, dict]:
+        system_prompt, user_prompt = self._build_speaker_prompt(message_history, players, prompt_gen)
         client = AsyncOpenAI(base_url=self.base_url, api_key=self.api_key)
         response = await client.chat.completions.create(
             model=self.model_override or self.model.value,
@@ -231,7 +253,63 @@ class Moderator(Agent):
             temperature=self.temperature,
         )
         meta = {"system_prompt": system_prompt, "user_prompt": user_prompt}
-        return parse_names(response.choices[0].message.content, player_names=[p.name for p in players]), meta
+        raw_text = response.choices[0].message.content or ""
+        player_name, action_type = parse_moderator_decision(raw_text, players)
+        return player_name, action_type, meta
+
+def parse_moderator_decision(raw_response: str, players: list["Player"]) -> tuple[str | None, ActionType | None]:
+    """Parses the moderator's raw response to extract a player name and an ActionType."""
+    text = raw_response.strip()
+    
+    # 1. Try to find the player name
+    found_player = None
+    for p in players:
+        # Search for exact word boundary match
+        if re.search(r'\b' + re.escape(p.name.lower()) + r'\b', text.lower()):
+            found_player = p.name
+            break
+    if not found_player:
+        for p in players:
+            if p.name.lower() in text.lower():
+                found_player = p.name
+                break
+
+    # 2. Try to find the action type
+    found_action = None
+    action_map = {action.name.lower(): action for action in ActionType}
+    
+    # Try exact action names
+    for name, action in action_map.items():
+        normalized_name = name.replace("_", " ")
+        if re.search(r'\b' + re.escape(name) + r'\b', text.lower()) or \
+           re.search(r'\b' + re.escape(normalized_name) + r'\b', text.lower()):
+            found_action = action
+            break
+            
+    # Try friendly aliases
+    if not found_action:
+        aliases = {
+            "ask": ActionType.ASK_QUESTION,
+            "question": ActionType.ASK_QUESTION,
+            "interact": ActionType.INTERACT,
+            "talk": ActionType.INTERACT,
+            "chat": ActionType.INTERACT,
+            "answer": ActionType.ANSWER_ONLY,
+            "vote": ActionType.VOTE,
+            "ignore": ActionType.IGNORE_QUESTION,
+            "topic": ActionType.CHANGE_TOPIC,
+            "caveman": ActionType.CAVEMAN_ANSWER,
+            "joke": ActionType.Joke,
+            "compliment": ActionType.Compliment,
+            "attack": ActionType.Attack,
+            "diss": ActionType.Attack,
+        }
+        for alias, action in aliases.items():
+            if re.search(r'\b' + re.escape(alias) + r'\b', text.lower()):
+                found_action = action
+                break
+                
+    return found_player, found_action
 
 def parse_vote(raw_response: str, player_names: list[str]) -> list[str]:
     """Extracts a valid player name from the raw response, expecting it between ## ##"""
@@ -239,7 +317,7 @@ def parse_vote(raw_response: str, player_names: list[str]) -> list[str]:
     if not match:
         # Fallback to standard parse logic if they fail to follow instructions
         return parse_names(raw_response, player_names)
-    
+
     return parse_names(match.group(1), player_names)
 
 def parse_names(raw_response: str, player_names: list[str]) -> list[str]:
