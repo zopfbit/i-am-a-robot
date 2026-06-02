@@ -1,9 +1,16 @@
 import asyncio
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from main import Game, GameConfig
 import os
+from pydantic import BaseModel, Field
+from typing import List, Dict, Any
+import html
+import json
+import uuid
+from datetime import datetime
+from drive_uploader import upload_file_to_drive
 
 app = FastAPI()
 
@@ -91,6 +98,41 @@ async def websocket_endpoint(websocket: WebSocket, player_name: str, duration: i
             await websocket.close()
         except:
             pass
+
+class FeedbackRequest(BaseModel):
+    playerName: str = Field(..., max_length=100)
+    feedback: str = Field(..., max_length=2000)
+    config: Dict[str, Any]
+    chatLog: List[Dict[str, Any]]
+
+@app.post("/api/feedback")
+async def submit_feedback(payload: FeedbackRequest, background_tasks: BackgroundTasks):
+    sanitized_feedback = html.escape(payload.feedback)
+    
+    feedback_data = {
+        "player_name": html.escape(payload.playerName),
+        "feedback": sanitized_feedback,
+        "config": payload.config,
+        "chat_log": payload.chatLog,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    
+    feedback_dir = os.path.join(os.path.dirname(__file__), "feedback")
+    if not os.path.exists(feedback_dir):
+        os.makedirs(feedback_dir)
+        
+    file_id_str = f"{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex}"
+    file_name = f"feedback_{file_id_str}.json"
+    file_path = os.path.join(feedback_dir, file_name)
+    
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(feedback_data, f, indent=4, ensure_ascii=False)
+        
+    print(f"[INFO server.py] Feedback saved locally at {file_path}")
+    
+    background_tasks.add_task(upload_file_to_drive, file_path, "application/json")
+    
+    return {"status": "success", "file_name": file_name}
 
 # To run the server directly (useful for local testing without uvicorn command line)
 if __name__ == "__main__":
