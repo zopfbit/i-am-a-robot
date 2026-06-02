@@ -109,8 +109,7 @@
         }
 
         .form-group input,
-        .form-group select,
-        .form-group textarea {
+        .form-group select {
             width: 100%;
             padding: 0.75rem 1rem;
             font-size: 0.9375rem;
@@ -123,14 +122,12 @@
             transition: border-color 0.2s, box-shadow 0.2s;
         }
 
-        .form-group input::placeholder,
-        .form-group textarea::placeholder {
+        .form-group input::placeholder {
             color: var(--text-muted);
         }
 
         .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
+        .form-group select:focus {
             border-color: var(--accent);
             box-shadow: 0 0 0 3px var(--accent-muted);
         }
@@ -619,32 +616,6 @@
             font-weight: 500;
         }
 
-        .btn-home {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 0.75rem;
-            background-color: var(--bg-tertiary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 0.8125rem;
-            font-weight: 500;
-            color: var(--text-primary);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-home:hover {
-            background-color: var(--bg-secondary);
-            border-color: var(--accent);
-            color: var(--accent);
-            transform: translateY(-1px);
-        }
-
-        .btn-home:active {
-            transform: translateY(0);
-        }
-
         .player-badge .dot {
             width: 8px;
             height: 8px;
@@ -1020,11 +991,11 @@
                     <div class="slider-container">
                         <div class="slider-track"></div>
                         <div class="slider-fill" id="duration-fill"></div>
-                        <input type="range" id="game-duration" value="120" min="30" max="300" step="10">
+                        <input type="range" id="game-duration" value="120" min="30" max="600" step="10">
                     </div>
                     <div class="slider-labels">
                         <span>30s</span>
-                        <span>5min</span>
+                        <span>10min</span>
                     </div>
                 </div>
 
@@ -1097,43 +1068,6 @@
         </div>
     </div>
 
-    <!-- Feedback Overlay Modal -->
-    <div id="feedback-modal" class="modal-overlay">
-        <div class="modal-content" style="max-width: 440px;">
-            <div class="modal-header">
-                <h2>Game Feedback</h2>
-                <button class="close-btn" id="close-feedback-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-
-            <div class="modal-body" style="gap: 1rem;">
-                <p class="subtitle" style="font-size: 0.875rem; margin-bottom: 0.5rem;">
-                    How was the game? Leave your feedback below.
-                </p>
-                <div class="form-group">
-                    <label for="feedback-text">Feedback</label>
-                    <textarea id="feedback-text" placeholder="Type your feedback here..." rows="4" maxlength="1000"
-                        style="resize: vertical; min-height: 100px;"></textarea>
-                    <div
-                        style="display: flex; justify-content: space-between; margin-top: 0.25rem; font-size: 0.75rem; color: var(--text-muted);">
-                        <span id="feedback-error" style="color: var(--danger);"></span>
-                        <span id="feedback-char-count">0/1000</span>
-                    </div>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
-                <button class="btn-secondary" id="skip-feedback-btn" style="flex: 1;">Skip</button>
-                <button class="btn" id="submit-feedback-btn" style="flex: 2;">Submit</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Chat Screen -->
     <div id="chat-screen">
         <div class="chat-header">
@@ -1150,13 +1084,6 @@
                 </div>
             </div>
             <div class="chat-header-right">
-                <button class="btn-home" id="home-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px;">
-                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                        <polyline points="9 22 9 12 15 12 15 22"/>
-                    </svg>
-                    Home
-                </button>
                 <div class="timer" id="timer-display">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                         stroke-linejoin="round">
@@ -1208,105 +1135,6 @@
         const openSettingsBtn = document.getElementById('open-settings-btn');
         const closeSettingsBtn = document.getElementById('close-settings-btn');
         const saveSettingsBtn = document.getElementById('save-settings-btn');
-        const homeBtn = document.getElementById('home-btn');
-
-        const feedbackModal = document.getElementById('feedback-modal');
-        const closeFeedbackBtn = document.getElementById('close-feedback-btn');
-        const skipFeedbackBtn = document.getElementById('skip-feedback-btn');
-        const submitFeedbackBtn = document.getElementById('submit-feedback-btn');
-        const feedbackText = document.getElementById('feedback-text');
-        const feedbackCharCount = document.getElementById('feedback-char-count');
-        const feedbackError = document.getElementById('feedback-error');
-
-        let clientChatLog = [];
-        let currentGameConfig = {};
-
-        // Track text area character count
-        feedbackText.addEventListener('input', () => {
-            const len = feedbackText.value.length;
-            feedbackCharCount.textContent = `${len}/1000`;
-            if (len > 1000) {
-                feedbackCharCount.style.color = 'var(--danger)';
-            } else {
-                feedbackCharCount.style.color = 'var(--text-muted)';
-            }
-        });
-
-        // Close feedback modal (Close / Skip buttons)
-        closeFeedbackBtn.addEventListener('click', () => {
-            feedbackModal.classList.remove('show');
-        });
-        skipFeedbackBtn.addEventListener('click', () => {
-            feedbackModal.classList.remove('show');
-        });
-
-        // Close feedback modal (Backdrop click)
-        feedbackModal.addEventListener('click', (e) => {
-            if (e.target === feedbackModal) {
-                feedbackModal.classList.remove('show');
-            }
-        });
-
-        // Client-side sanitization to escape HTML tags
-        function sanitizeInput(str) {
-            return str
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-        }
-
-        submitFeedbackBtn.addEventListener('click', () => {
-            const rawText = feedbackText.value.trim();
-            if (!rawText) {
-                feedbackError.textContent = "Please enter some feedback.";
-                return;
-            }
-            if (rawText.length > 1000) {
-                feedbackError.textContent = "Feedback is too long (max 1000 characters).";
-                return;
-            }
-
-            feedbackError.textContent = "";
-            submitFeedbackBtn.disabled = true;
-            submitFeedbackBtn.textContent = "Submitting...";
-
-            const payload = {
-                playerName: document.getElementById('player-name').value.trim() || 'alex',
-                feedback: sanitizeInput(rawText),
-                config: currentGameConfig,
-                chatLog: clientChatLog
-            };
-
-            fetch('/api/feedback', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            })
-                .then(res => {
-                    if (!res.ok) {
-                        throw new Error("Failed to submit feedback.");
-                    }
-                    return res.json();
-                })
-                .then(data => {
-                    feedbackModal.classList.remove('show');
-                    addMessage('system', 'Thank you for your feedback!');
-                    feedbackText.value = '';
-                    feedbackCharCount.textContent = '0/1000';
-                })
-                .catch(err => {
-                    console.error(err);
-                    feedbackError.textContent = "Submission failed. Please try again.";
-                })
-                .finally(() => {
-                    submitFeedbackBtn.disabled = false;
-                    submitFeedbackBtn.textContent = "Submit";
-                });
-        });
 
         // Open modal
         openSettingsBtn.addEventListener('click', () => {
@@ -1321,28 +1149,6 @@
         // Close modal (Save button)
         saveSettingsBtn.addEventListener('click', () => {
             settingsModal.classList.remove('show');
-            saveConfigToLocalStorage();
-        });
-
-        // Home Button click
-        homeBtn.addEventListener('click', () => {
-            const isActive = ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING);
-            if (isActive) {
-                if (!confirm("Exit current game and return to home?")) {
-                    return;
-                }
-            }
-            if (ws) {
-                ws.close();
-            }
-            if (timerInterval) {
-                clearInterval(timerInterval);
-            }
-            chatScreen.style.display = 'none';
-            loginScreen.style.display = 'flex';
-            chatMessages.innerHTML = '';
-            clientChatLog = [];
-            currentGameConfig = {};
         });
 
         // Close modal (Backdrop click)
@@ -1352,57 +1158,7 @@
             }
         });
 
-        function saveConfigToLocalStorage() {
-            try {
-                localStorage.setItem('playerName', document.getElementById('player-name').value.trim());
-                localStorage.setItem('gameDuration', document.getElementById('game-duration').value);
-                localStorage.setItem('aiTemperature', document.getElementById('ai-temperature').value);
-                localStorage.setItem('chatSpeed', document.getElementById('chat-speed').value);
-                localStorage.setItem('apiKey', document.getElementById('api-key').value.trim());
-                localStorage.setItem('useImperfection', document.getElementById('use-imperfection').checked);
-                localStorage.setItem('useWordLimit', document.getElementById('use-word-limit').checked);
-                localStorage.setItem('useHiddenMotives', document.getElementById('use-hidden-motives').checked);
-                localStorage.setItem('useBackgrounds', document.getElementById('use-backgrounds').checked);
-            } catch (e) {
-                console.error("Failed to save config to localStorage:", e);
-            }
-        }
 
-        function loadConfigFromLocalStorage() {
-            try {
-                const name = localStorage.getItem('playerName');
-                if (name !== null) document.getElementById('player-name').value = name;
-                
-                const duration = localStorage.getItem('gameDuration');
-                if (duration !== null) document.getElementById('game-duration').value = duration;
-                
-                const temp = localStorage.getItem('aiTemperature');
-                if (temp !== null) document.getElementById('ai-temperature').value = temp;
-                
-                const speed = localStorage.getItem('chatSpeed');
-                if (speed !== null) document.getElementById('chat-speed').value = speed;
-                
-                const apiKey = localStorage.getItem('apiKey');
-                if (apiKey !== null) document.getElementById('api-key').value = apiKey;
-                
-                const useImp = localStorage.getItem('useImperfection');
-                if (useImp !== null) document.getElementById('use-imperfection').checked = (useImp === 'true');
-                
-                const useWord = localStorage.getItem('useWordLimit');
-                if (useWord !== null) document.getElementById('use-word-limit').checked = (useWord === 'true');
-                
-                const useMotive = localStorage.getItem('useHiddenMotives');
-                if (useMotive !== null) document.getElementById('use-hidden-motives').checked = (useMotive === 'true');
-                
-                const useBg = localStorage.getItem('useBackgrounds');
-                if (useBg !== null) document.getElementById('use-backgrounds').checked = (useBg === 'true');
-            } catch (e) {
-                console.error("Failed to load config from localStorage:", e);
-            }
-        }
-
-        // Load config from localStorage when page initializes
-        loadConfigFromLocalStorage();
 
         let ws;
         let timerInterval;
@@ -1457,7 +1213,6 @@
         });
 
         function startGame() {
-            saveConfigToLocalStorage();
             const nameInput = document.getElementById('player-name');
             const durationInput = document.getElementById('game-duration');
             const tempInput = document.getElementById('ai-temperature');
@@ -1476,17 +1231,6 @@
             const temperature = parseFloat(tempInput.value) || 1.0;
             const speed = speedInput.value;
             const apiKey = apiKeyInput ? apiKeyInput.value.trim() : '';
-
-            clientChatLog = [];
-            currentGameConfig = {
-                duration: duration,
-                temperature: temperature,
-                speed: speed,
-                use_imperfection: imperfectionInput ? imperfectionInput.checked : true,
-                use_word_limit: wordLimitInput ? wordLimitInput.checked : true,
-                use_hidden_motives: hiddenMotivesInput ? hiddenMotivesInput.checked : true,
-                use_backgrounds: backgroundsInput ? backgroundsInput.checked : true
-            };
 
 
 
@@ -1582,10 +1326,6 @@
                 typingIndicator.style.display = 'none';
                 if (timerInterval) clearInterval(timerInterval);
                 document.getElementById('timer-display').style.display = 'none';
-
-                setTimeout(() => {
-                    feedbackModal.classList.add('show');
-                }, 1500);
             };
         }
 
@@ -1621,7 +1361,6 @@
         }
 
         function addMessage(type, content, meta = null) {
-            clientChatLog.push({ sender: type.toUpperCase(), content: content });
             const div = document.createElement('div');
             div.className = `message ${type}`;
 
@@ -1651,7 +1390,6 @@
         }
 
         function addChatMessage(sender, content, meta = null) {
-            clientChatLog.push({ sender: sender, content: content });
             const div = document.createElement('div');
             const playerName = document.getElementById('player-name').value.trim();
             const isOutgoing = sender.toLowerCase() === playerName.toLowerCase();
